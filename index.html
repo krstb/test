@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Notizen Offline</title>
+
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#e0f7fa">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js').catch(err => console.log('SW Fehler:', err));
+            });
+        }
+    </script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+        
+        html, body { 
+            background-color: #e0f7fa !important;
+        }
+        body { font-family: 'Inter', sans-serif; }
+        textarea { resize: none; }
+        
+        .note-text-container {
+            overflow-wrap: anywhere;
+            word-break: normal;
+            white-space: pre-wrap;
+            display: -webkit-box;
+            -webkit-line-clamp: 12;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+        }
+
+        .btn-action {
+            font-size: 11px;
+            font-weight: 600;
+            padding: 0 12px;
+            border-radius: 8px;
+            transition: all 0.2s;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .note-item {
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-[#e0f7fa] min-h-screen flex flex-col items-center p-2">
+
+    <div class="w-full max-w-md bg-white rounded-2xl shadow-lg p-4 md:p-5 mt-0.5">
+        <h1 class="text-lg font-bold text-center text-slate-800 mb-3">Notizen-Offline</h1>
+
+        <div id="appContent">
+            <form id="noteForm" class="flex flex-col gap-2 mb-4">
+                <textarea id="noteInput" placeholder="Neue Notiz..." rows="2"
+                       class="w-full p-2 rounded-lg border-2 border-slate-200 focus:outline-none focus:border-cyan-500 text-sm shadow-sm"></textarea>
+                
+                <div class="flex gap-2 items-center">
+                    <select id="priorityInput" class="flex-1 h-[32px] p-1 rounded-lg border-2 border-slate-200 text-sm bg-white cursor-pointer focus:outline-none">
+                        <option value="1">Niedrig</option>
+                        <option value="2">Mittel</option>
+                        <option value="3">Hoch</option>
+                    </select>
+                    <button type="submit" class="bg-cyan-600 text-white btn-action shadow-sm hover:bg-cyan-700 active:scale-95">Hinzufügen</button>
+                </div>
+            </form>
+    
+            <div id="notesContainer" class="space-y-2">
+                <p id="loadingMessage" class="text-center text-slate-400 text-xs italic py-2">Lade Daten...</p>
+            </div>
+    
+            <div id="authFooter" class="mt-6 pt-2 border-t border-slate-100 text-center flex justify-center gap-4">
+                <button id="exportCsvBtn" class="text-slate-400 text-[10px] hover:text-slate-600 transition-colors">CSV Export</button>
+                <span class="text-slate-300 text-[10px] self-center">Offline-Modus</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const noteInput = document.getElementById('noteInput');
+        const notesContainer = document.getElementById('notesContainer');
+        const priorityInput = document.getElementById('priorityInput');
+
+        // Data Handling
+        const getNotes = () => JSON.parse(localStorage.getItem('notes-app-data')) || [];
+        const saveNotes = (notes) => localStorage.setItem('notes-app-data', JSON.stringify(notes));
+
+        const priorityColors = { '3': 'bg-red-500', '2': 'bg-yellow-400', '1': 'bg-green-500' };
+
+        const createNoteView = (note) => `
+            <div class="flex flex-1 min-w-0 items-start pointer-events-none">
+                 <span class="w-2.5 h-2.5 rounded-full mr-2.5 mt-1.5 flex-shrink-0 ${priorityColors[note.priority] || 'bg-gray-300'}"></span>
+                 <p class="text-slate-700 text-sm leading-snug note-text-container flex-1">${note.text}</p>
+            </div>
+        `;
+
+        const renderNotesUI = () => {
+            const notes = getNotes();
+            notesContainer.innerHTML = ''; 
+            
+            if (notes.length === 0) {
+                notesContainer.innerHTML = '<p class="text-center text-slate-400 text-xs italic py-4">Keine Notizen vorhanden...</p>';
+                return;
+            }
+
+            // Sortierung: Priorität absteigend, dann Text aufsteigend
+            notes.sort((a, b) => {
+                if (b.priority !== a.priority) return b.priority - a.priority;
+                return a.text.localeCompare(b.text);
+            });
+
+            notes.forEach(note => {
+                const el = document.createElement('div');
+                el.className = 'note-item flex items-center justify-between p-3 bg-white rounded-xl border border-slate-100 shadow-sm transition-colors hover:bg-slate-50';
+                el.dataset.id = note.id; 
+                el.innerHTML = createNoteView(note);
+                notesContainer.appendChild(el);
+            });
+        };
+
+        document.getElementById('noteForm').onsubmit = (e) => {
+            e.preventDefault();
+            const text = noteInput.value.trim();
+            if (!text) return;
+
+            const notes = getNotes();
+            notes.push({
+                id: Date.now(),
+                text: text,
+                priority: priorityInput.value,
+                createdAt: Date.now()
+            });
+            saveNotes(notes);
+            renderNotesUI();
+            noteInput.value = '';
+        };
+
+        notesContainer.onclick = (e) => {
+            const item = e.target.closest('.note-item');
+            const isControl = e.target.closest('textarea, select, button');
+            
+            if (item && !isControl) {
+                const id = parseInt(item.dataset.id);
+                const notes = getNotes();
+                const old = notes.find(n => n.id === id);
+                
+                item.innerHTML = `
+                    <div class="flex flex-col gap-2 w-full">
+                        <textarea class="edit-input w-full p-2 rounded-lg border-2 border-slate-200 focus:outline-none focus:border-cyan-500 text-sm shadow-sm" rows="2">${old.text}</textarea>
+                        <div class="flex gap-1 justify-start items-center">
+                            <select class="edit-priority h-[32px] w-24 p-1 rounded-lg border-2 border-slate-200 text-sm bg-white cursor-pointer focus:outline-none">
+                                <option value="1" ${old.priority === '1' ? 'selected' : ''}>Niedrig</option>
+                                <option value="2" ${old.priority === '2' ? 'selected' : ''}>Mittel</option>
+                                <option value="3" ${old.priority === '3' ? 'selected' : ''}>Hoch</option>
+                            </select>
+                            <button class="save-btn bg-green-600 text-white btn-action shadow-sm active:scale-95">Speichern</button>
+                            <button class="delete-btn bg-red-500 text-white btn-action shadow-sm active:scale-95">Löschen</button>
+                            <button class="cancel-btn bg-slate-100 text-slate-500 border border-slate-200 btn-action active:scale-95">Abbrechen</button>
+                        </div>
+                    </div>`;
+                item.querySelector('.edit-input').focus();
+                return;
+            }
+
+            const btn = e.target.closest('button');
+            if (!btn) return;
+            const el = btn.closest('[data-id]');
+            const id = parseInt(el.dataset.id);
+            let notes = getNotes();
+
+            if (btn.classList.contains('delete-btn')) {
+                if(confirm("Wirklich löschen?")) {
+                    notes = notes.filter(n => n.id !== id);
+                    saveNotes(notes);
+                    renderNotesUI();
+                }
+            } else if (btn.classList.contains('save-btn')) {
+                const newText = el.querySelector('.edit-input').value.trim();
+                const newPrio = el.querySelector('.edit-priority').value;
+                if (newText) {
+                    notes = notes.map(n => n.id === id ? {...n, text: newText, priority: newPrio} : n);
+                    saveNotes(notes);
+                }
+                renderNotesUI();
+            } else if (btn.classList.contains('cancel-btn')) {
+                renderNotesUI();
+            }
+        };
+
+        document.getElementById('exportCsvBtn').onclick = () => {
+            const notes = getNotes();
+            if (notes.length === 0) return;
+            let csv = "data:text/csv;charset=utf-8,\uFEFFText,Priorität\n";
+            notes.forEach(n => csv += `"${n.text.replace(/"/g, '""')}",${n.priority}\n`);
+            const link = document.createElement("a");
+            link.href = encodeURI(csv);
+            link.download = "notizen_offline.csv";
+            link.click();
+        };
+
+        // Initialer Load
+        renderNotesUI();
+    </script>
+</body>
+</html>
