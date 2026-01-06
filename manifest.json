@@ -1,6 +1,6 @@
 {
   "short_name": "Uhrzeit_test",
-  "name": "Uhrzeit Weltweit",
+  "name": "Uhrzeit Weltweit test",
   "description": "Berechnet Zeitzonen und besondere lokale Zeiten",
   "start_url": "index.html",
   "display": "standalone",
