@@ -87,6 +87,7 @@
         .event-none { background-color: #f3f4f6; }
         .holiday-text { color: #dc2626 !important; font-weight: bold; position: relative; z-index: 20; }
         .day.today { box-shadow: 0 0 0 2px #3b82f6; position: relative; z-index: 30; }
+        .day span { color: #1f2937; } /* Wiederhergestellt aus kalender.html */
         .user-event-dot { width: 4px; height: 4px; background-color: #ef4444; border-radius: 50%; position: absolute; bottom: 4px; }
         #event-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
 
@@ -138,8 +139,7 @@
                 <span class="w-4 h-4 rounded-full bg-gray-100 mr-2 border border-gray-400 flex items-center justify-center">
                     <span class="text-xs font-bold holiday-text">F</span>
                 </span>
-                Feiertag
-             </div>
+                Feiertag (Rote Schrift) </div>
         </div>
     </div>
 
@@ -173,6 +173,7 @@
         const CYCLE_DAYS = 42;
 
         function getLocalDayKey(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
+        function getUTCDayKey(d) { return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`; }
         function getWeekNumber(d) { d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7)); const yS = new Date(Date.UTC(d.getUTCFullYear(), 0, 1)); return Math.ceil((((d - yS) / MS_PER_DAY) + 1) / 7); }
 
         function getEasterSunday(y) { 
@@ -185,7 +186,7 @@
             const fH = { '1-1': 'Neujahr', '1-6': 'Heilige Drei Könige', '5-1': 'Tag der Arbeit', '8-8': 'Friedensfest (Augsburg)', '8-15': 'Mariä Himmelfahrt', '10-3': 'Tag der Deutschen Einheit', '11-1': 'Allerheiligen', '12-25': 'Erster Weihnachtstag', '12-26': 'Zweiter Weihnachtstag' };
             if (fH[`${m}-${day}`]) return fH[`${m}-${day}`];
             const e = getEasterSunday(y);
-            const add = (base, n) => { const r = new Date(base.getTime()); r.setUTCDate(r.getUTCDate() + n); return getLocalDayKey(r); };
+            const add = (base, n) => { const r = new Date(base.getTime()); r.setUTCDate(r.getUTCDate() + n); return getUTCDayKey(r); };
             const mov = {};
             mov[add(e, -2)] = 'Karfreitag'; mov[add(e, 1)] = 'Ostermontag'; mov[add(e, 39)] = 'Christi Himmelfahrt'; mov[add(e, 50)] = 'Pfingstmontag'; mov[add(e, 60)] = 'Fronleichnam';
             return mov[key] || null;
