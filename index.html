@@ -11,6 +11,7 @@
     <meta name="theme-color" content="#000000">
     <meta name="color-scheme" content="light">
     <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
     <link rel="apple-touch-icon" href="icon-192.png">
 
     <script src="https://cdn.tailwindcss.com"></script>
@@ -42,14 +43,12 @@
 
       let userEventsDocRef = null;
 
-      // Die Logik aus notizen_online.html: Erst beim Status-Check entscheiden
       onAuthStateChanged(auth, (user) => {
           const loginBtn = document.getElementById('loginBtn');
           const userArea = document.getElementById('user-area');
           
           if (user) {
-              // Eingeloggt: Button verstecken, User-Bereich zeigen
-              loginBtn.classList.add('hidden');
+              loginBtn.style.visibility = 'hidden'; // Button nimmt weiterhin Platz ein, ist aber unsichtbar
               userArea.classList.remove('hidden');
               userEventsDocRef = doc(db, "data", user.uid);
               onSnapshot(userEventsDocRef, (docSnap) => {
@@ -57,8 +56,7 @@
                   if (typeof renderCalendar === "function") renderCalendar();
               });
           } else {
-              // Nicht eingeloggt: Button anzeigen, User-Bereich verstecken
-              loginBtn.classList.remove('hidden');
+              loginBtn.style.visibility = 'visible';
               userArea.classList.add('hidden');
               userEvents = {};
               userEventsDocRef = null;
@@ -75,7 +73,6 @@
         html { background-color: #000000 !important; }
         body { font-family: 'Inter', sans-serif; -webkit-tap-highlight-color: transparent; }
         
-        /* Kalender-Styling */
         .event-1 { background-color: #bfdbfe; }
         .event-2 { background-color: #bbf7d0; }
         .event-3 { background-color: #fef08a; }
@@ -86,7 +83,14 @@
         
         #event-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
 
-        /* Button-Design aus notizen_online.html */
+        /* Fester Platzhalter für das Auth-Panel oben */
+        #authPanelTop {
+            height: 48px; /* Feste Höhe */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
         .btn-login {
             font-size: 11px;
             font-weight: 600;
@@ -97,14 +101,7 @@
             align-items: center;
             justify-content: center;
             transition: all 0.2s;
-        }
-
-        /* Fixierte Mindesthöhe gegen Hüpfen */
-        #authPanelTop {
-            min-height: 40px;
-            display: flex;
-            justify-content: center;
-            align-items: center;
+            visibility: hidden; /* Initial versteckt */
         }
     </style>
 </head>
@@ -112,8 +109,8 @@
 
     <div class="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-2 sm:p-4 md:p-6 text-gray-800">
         
-        <div id="authPanelTop" class="mb-2">
-            <button id="loginBtn" onclick="login()" class="bg-cyan-600 text-white btn-login hidden hover:bg-cyan-700 active:scale-95 shadow-sm">
+        <div id="authPanelTop">
+            <button id="loginBtn" onclick="login()" class="bg-cyan-600 text-white btn-login shadow-sm hover:bg-cyan-700 active:scale-95">
                 Login mit Google
             </button>
         </div>
@@ -158,7 +155,6 @@
     </div>
 
     <script>
-        // ... (hier folgen die Kalender-Funktionen wie in der hochgeladenen kalender.html)
         const monthYearEl = document.getElementById('month-year');
         const calendarGridWrapper = document.getElementById('calendar-grid-wrapper');
         const prevMonthBtn = document.getElementById('prev-month');
@@ -209,7 +205,6 @@
                 if (date.getDay() === 1 && day !== 1) calendarGridWrapper.insertAdjacentHTML('beforeend', `<div class="aspect-square flex items-center justify-center font-bold text-gray-500">${getWeekNumber(date)}</div>`);
                 const ev = getEventForDate(date); const dayEl = document.createElement('div');
                 dayEl.className = `day relative p-1 rounded-lg text-center aspect-square flex items-center justify-center cursor-pointer ${ev.class} ${dateKey === getLocalDayKey(new Date()) ? 'today' : ''}`;
-                dayEl.onclick = () => openModal(dateKey);
                 const tC = ev.isHoliday ? 'holiday-text' : '';
                 dayEl.innerHTML = `<span class="text-gray-800 font-medium text-xs sm:text-base ${tC}">${day}</span>`;
                 if(userEvents[dateKey]) dayEl.innerHTML += `<div class="user-event-dot"></div>`;
