@@ -54,8 +54,10 @@
       onAuthStateChanged(auth, (user) => {
           const loginContainer = document.getElementById('loginContainer');
           const userArea = document.getElementById('user-area');
+          
           if (user) {
-              loginContainer.style.display = 'none'; // Login-Platz wird bei Erfolg freigegeben
+              // Wenn eingeloggt: Login-Bereich komplett weg, Abmelden-Bereich zeigen
+              loginContainer.style.display = 'none';
               userArea.style.visibility = 'visible';
               userArea.style.opacity = '1';
               userEventsDocRef = doc(db, "data", user.uid);
@@ -64,7 +66,10 @@
                   if (typeof renderCalendar === "function") renderCalendar();
               });
           } else {
+              // Wenn nicht eingeloggt: Login-Bereich dezent einblenden
               loginContainer.style.display = 'flex';
+              loginContainer.style.visibility = 'visible';
+              loginContainer.style.opacity = '1';
               userArea.style.visibility = 'hidden';
               userArea.style.opacity = '0';
               userEvents = {};
@@ -107,10 +112,13 @@
             transition: all 0.2s;
         }
 
-        /* Platzhalter für Login gegen Hüpfen */
+        /* NEU: Login-Container ist im Standard unsichtbar */
         #loginContainer {
             min-height: 32px;
             margin-bottom: 24px;
+            visibility: hidden;
+            opacity: 0;
+            transition: opacity 0.3s ease;
         }
 
         #user-area {
