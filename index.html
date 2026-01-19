@@ -56,7 +56,8 @@
           const userArea = document.getElementById('user-area');
           if (user) {
               loginContainer.classList.add('hidden');
-              userArea.classList.remove('hidden');
+              userArea.style.visibility = 'visible';
+              userArea.style.opacity = '1';
               userEventsDocRef = doc(db, "data", user.uid);
               onSnapshot(userEventsDocRef, (docSnap) => {
                   userEvents = docSnap.exists() ? docSnap.data() : {};
@@ -64,7 +65,8 @@
               });
           } else {
               loginContainer.classList.remove('hidden');
-              userArea.classList.add('hidden');
+              userArea.style.visibility = 'hidden';
+              userArea.style.opacity = '0';
               userEvents = {};
               userEventsDocRef = null;
               if (typeof renderCalendar === "function") renderCalendar();
@@ -103,6 +105,11 @@
             align-items: center;
             justify-content: center;
             transition: all 0.2s;
+        }
+
+        #user-area {
+            transition: opacity 0.2s ease;
+            min-height: 24px; /* Reduzierter reservierter Platz */
         }
     </style>
 </head>
@@ -152,7 +159,7 @@
              </div>
         </div>
 
-        <div id="user-area" class="hidden mt-8 pt-4 border-t border-slate-100 flex flex-col items-center gap-2">
+        <div id="user-area" style="visibility: hidden; opacity: 0;" class="mt-2 pt-2 border-t border-slate-100 flex flex-col items-center">
             <button onclick="logout()" class="text-red-300 text-[10px] hover:text-red-500 transition-colors font-medium">Abmelden</button>
         </div>
     </div>
