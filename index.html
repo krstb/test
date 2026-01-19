@@ -96,6 +96,15 @@
             font-size: 11px; font-weight: 600; padding: 0 20px; border-radius: 8px; height: 32px;
             display: inline-flex; align-items: center; justify-content: center;
         }
+        /* Spezifische Anpassung für den Abmeldebutton laut Wunsch */
+        #logoutBtnTop {
+            font-size: 10px; 
+            background: transparent !important; 
+            border: none !important; 
+            color: #2563eb !important; /* Blue-600 */
+            padding: 0;
+            box-shadow: none !important;
+        }
     </style>
 </head>
 <body class="bg-[#98507F] text-white flex flex-col items-center justify-start min-h-screen w-full p-4 pt-4">
@@ -106,7 +115,7 @@
             <button id="loginBtn" onclick="login()" style="opacity: 0;" class="bg-cyan-600 text-white btn-auth shadow-sm hover:bg-cyan-700">
                 Login mit Google
             </button>
-            <button id="logoutBtnTop" onclick="logout()" style="display: none;" class="bg-gray-100 text-red-500 border border-red-200 btn-auth">
+            <button id="logoutBtnTop" onclick="logout()" style="display: none;" class="btn-auth">
                 Abmelden
             </button>
         </div>
@@ -254,7 +263,6 @@
                 calendarGridWrapper.appendChild(dayEl);
             }
             const cE = getEventForDate(new Date()); 
-            // Hier wurde die Original-Logik wiederhergestellt
             currentWeekEventEl.textContent = cE.isHoliday ? cE.holidayName : cE.name.replace(' (Pause)', '').replace(' (Wochenende)', '');
         }
 
