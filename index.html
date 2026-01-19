@@ -52,19 +52,21 @@
 
       let userEventsDocRef = null;
       onAuthStateChanged(auth, (user) => {
-          const loginContainer = document.getElementById('loginContainer');
+          const loginBtn = document.getElementById('login-btn');
           const userArea = document.getElementById('user-area');
           if (user) {
-              loginContainer.classList.add('hidden');
+              loginBtn.classList.add('hidden');
+              // Stabilisierung: Sichtbarkeit statt Display-Wechsel
               userArea.style.visibility = 'visible';
               userArea.style.opacity = '1';
+              document.getElementById('user-img').src = user.photoURL || '';
               userEventsDocRef = doc(db, "data", user.uid);
               onSnapshot(userEventsDocRef, (docSnap) => {
                   userEvents = docSnap.exists() ? docSnap.data() : {};
                   if (typeof renderCalendar === "function") renderCalendar();
               });
           } else {
-              loginContainer.classList.remove('hidden');
+              loginBtn.classList.remove('hidden');
               userArea.style.visibility = 'hidden';
               userArea.style.opacity = '0';
               userEvents = {};
@@ -95,34 +97,24 @@
         
         #event-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
 
-        .btn-login {
-            font-size: 11px;
-            font-weight: 600;
-            padding: 0 20px;
-            border-radius: 8px;
-            height: 32px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            transition: all 0.2s;
-        }
-
+        /* NEU: Stabilisierung für den Login-Bereich oben */
         #user-area {
             transition: opacity 0.2s ease;
-            min-height: 24px; /* Reduzierter reservierter Platz */
         }
     </style>
 </head>
-<body class="bg-[#98507F] text-white flex flex-col items-center justify-start min-h-screen w-full p-4 pt-4">
-
-    <div id="loginContainer" class="w-full flex justify-center mb-6">
-        <button onclick="login()" class="bg-cyan-600 text-white btn-login hover:bg-cyan-700 active:scale-95 shadow-sm">
-            Login mit Google
-        </button>
-    </div>
+<body class="bg-[#98507F] text-white flex items-start justify-center min-h-screen w-full p-4 pt-4">
 
     <div class="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-2 sm:p-4 md:p-6 text-gray-800">
         
+        <div class="flex justify-end mb-4 h-8 relative">
+            <button id="login-btn" onclick="login()" class="bg-blue-600 text-white px-4 py-1 rounded-full text-xs font-semibold">Google Login</button>
+            <div id="user-area" style="visibility: hidden; opacity: 0;" class="flex items-center gap-3">
+                <img id="user-img" src="" class="w-7 h-7 rounded-full border">
+                <button onclick="logout()" class="bg-gray-100 text-gray-700 px-3 py-1 rounded-full text-xs border">Logout</button>
+            </div>
+        </div>
+
         <div class="header flex justify-between items-center mb-6">
             <button id="prev-month" class="p-2 rounded-full hover:bg-gray-100 transition-colors">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-gray-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -155,12 +147,8 @@
                 <span class="w-4 h-4 rounded-full bg-gray-100 mr-2 border border-gray-400 flex items-center justify-center">
                     <span class="text-xs font-bold holiday-text">F</span>
                 </span>
-                Feiertag
+                Feiertag (Rote Schrift)
              </div>
-        </div>
-
-        <div id="user-area" style="visibility: hidden; opacity: 0;" class="mt-2 pt-2 border-t border-slate-100 flex flex-col items-center">
-            <button onclick="logout()" class="text-red-300 text-[10px] hover:text-red-500 transition-colors font-medium">Abmelden</button>
         </div>
     </div>
 
