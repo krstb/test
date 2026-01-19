@@ -55,7 +55,7 @@
           const loginContainer = document.getElementById('loginContainer');
           const userArea = document.getElementById('user-area');
           if (user) {
-              loginContainer.classList.add('hidden');
+              loginContainer.style.display = 'none'; // Login-Platz wird bei Erfolg freigegeben
               userArea.style.visibility = 'visible';
               userArea.style.opacity = '1';
               userEventsDocRef = doc(db, "data", user.uid);
@@ -64,7 +64,7 @@
                   if (typeof renderCalendar === "function") renderCalendar();
               });
           } else {
-              loginContainer.classList.remove('hidden');
+              loginContainer.style.display = 'flex';
               userArea.style.visibility = 'hidden';
               userArea.style.opacity = '0';
               userEvents = {};
@@ -107,6 +107,12 @@
             transition: all 0.2s;
         }
 
+        /* Platzhalter für Login gegen Hüpfen */
+        #loginContainer {
+            min-height: 32px;
+            margin-bottom: 24px;
+        }
+
         #user-area {
             transition: opacity 0.2s ease;
             min-height: 24px;
@@ -115,7 +121,7 @@
 </head>
 <body class="bg-[#98507F] text-white flex flex-col items-center justify-start min-h-screen w-full p-4 pt-4">
 
-    <div id="loginContainer" class="w-full flex justify-center mb-6">
+    <div id="loginContainer" class="w-full flex justify-center">
         <button onclick="login()" class="bg-cyan-600 text-white btn-login hover:bg-cyan-700 active:scale-95 shadow-sm">
             Login mit Google
         </button>
