@@ -52,21 +52,21 @@
       let userEventsDocRef = null;
 
       onAuthStateChanged(auth, (user) => {
-          const loginBtn = document.getElementById('loginBtn');
-          const logoutBtn = document.getElementById('logoutBtnTop');
+          const loginBtn = document.getElementById('login-btn');
+          const userArea = document.getElementById('user-area');
           
           if (user) {
-              loginBtn.style.display = 'none';
-              logoutBtn.style.display = 'inline-flex';
+              loginBtn.classList.add('hidden');
+              userArea.classList.remove('hidden');
+              document.getElementById('user-img').src = user.photoURL || '';
               userEventsDocRef = doc(db, "data", user.uid);
               onSnapshot(userEventsDocRef, (docSnap) => {
                   window.userEvents = docSnap.exists() ? docSnap.data() : {};
                   if (typeof renderCalendar === "function") renderCalendar();
               });
           } else {
-              loginBtn.style.display = 'inline-flex';
-              loginBtn.style.opacity = '1'; 
-              logoutBtn.style.display = 'none';
+              loginBtn.classList.remove('hidden');
+              userArea.classList.add('hidden');
               window.userEvents = {};
               userEventsDocRef = null;
               if (typeof renderCalendar === "function") renderCalendar();
@@ -91,33 +91,30 @@
         .user-event-dot { width: 4px; height: 4px; background-color: #ef4444; border-radius: 50%; position: absolute; bottom: 4px; }
         #event-modal { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 100; align-items: center; justify-content: center; }
 
-        #authPanelTop { height: 60px; display: flex; justify-content: center; align-items: center; width: 100%; }
-        .btn-auth {
-            font-size: 11px; font-weight: 600; padding: 0 20px; border-radius: 8px; height: 32px;
-            display: inline-flex; align-items: center; justify-content: center;
-        }
-        /* Spezifische Anpassung für den Abmeldebutton laut Wunsch */
-        #logoutBtnTop {
+        /* Styling für die Buttons im Header */
+        #logoutBtnTop, #login-btn-text {
             font-size: 10px; 
             background: transparent !important; 
             border: none !important; 
-            color: #2563eb !important; /* Blue-600 */
+            color: #2563eb !important; 
             padding: 0;
             box-shadow: none !important;
+            font-weight: 600;
         }
     </style>
 </head>
-<body class="bg-[#98507F] text-white flex flex-col items-center justify-start min-h-screen w-full p-4 pt-4">
+<body class="bg-[#98507F] text-white flex items-start justify-center min-h-screen w-full p-4 pt-4">
 
     <div class="w-full max-w-4xl bg-white rounded-2xl shadow-lg p-2 sm:p-4 md:p-6 text-gray-800">
         
-        <div id="authPanelTop">
-            <button id="loginBtn" onclick="login()" style="opacity: 0;" class="bg-cyan-600 text-white btn-auth shadow-sm hover:bg-cyan-700">
-                Login mit Google
+        <div id="authPanelTop" class="flex justify-end mb-4 h-8 items-center">
+            <button id="login-btn" onclick="login()" class="bg-blue-600 text-white px-4 py-1 rounded-full text-xs font-semibold">
+                <span id="login-btn-text">Anmelden</span>
             </button>
-            <button id="logoutBtnTop" onclick="logout()" style="display: none;" class="btn-auth">
-                Abmelden
-            </button>
+            <div id="user-area" class="hidden flex items-center gap-3">
+                <img id="user-img" src="" class="w-7 h-7 rounded-full border">
+                <button id="logoutBtnTop" onclick="logout()">Abmelden</button>
+            </div>
         </div>
 
         <div class="header flex justify-between items-center mb-6">
@@ -182,9 +179,10 @@
         const MS_PER_DAY = 1000 * 60 * 60 * 24;
         const CYCLE_DAYS = 42;
 
+        function daysSinceUTC(s, e) { return Math.floor((Date.UTC(e.getFullYear(), e.getMonth(), e.getDate()) - Date.UTC(s.getFullYear(), s.getMonth(), s.getDate())) / MS_PER_DAY); }
+        function getWeekNumber(d) { d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7)); const yS = new Date(Date.UTC(d.getUTCFullYear(), 0, 1)); return Math.ceil((((d - yS) / MS_PER_DAY) + 1) / 7); }
         function getLocalDayKey(d) { return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`; }
         function getUTCDayKey(d) { return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`; }
-        function getWeekNumber(d) { d = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate())); d.setUTCDate(d.getUTCDate() + 4 - (d.getUTCDay() || 7)); const yS = new Date(Date.UTC(d.getUTCFullYear(), 0, 1)); return Math.ceil((((d - yS) / MS_PER_DAY) + 1) / 7); }
 
         function getEasterSunday(y) { 
             const a = y % 19, b = Math.floor(y/100), c = y % 100, d = Math.floor(b/4), e = b%4, g = Math.floor((8*b+13)/25), h = (19*a+b-d-g+15)%30, i = Math.floor(c/4), k = c%4, L = (32+2*e+2*i-h-k)%7, m = Math.floor((a+11*h+22*L)/451), mo = Math.floor((h+L-7*m+114)/31), da = ((h+L-7*m+114)%31)+1; 
@@ -196,10 +194,23 @@
             const fH = { '1-1': 'Neujahr', '1-6': 'Heilige Drei Könige', '5-1': 'Tag der Arbeit', '8-8': 'Friedensfest (Augsburg)', '8-15': 'Mariä Himmelfahrt', '10-3': 'Tag der Deutschen Einheit', '11-1': 'Allerheiligen', '12-25': 'Erster Weihnachtstag', '12-26': 'Zweiter Weihnachtstag' };
             if (fH[`${m}-${day}`]) return fH[`${m}-${day}`];
             const e = getEasterSunday(y);
-            const add = (base, n) => { const r = new Date(base.getTime()); r.setUTCDate(r.getUTCDate() + n); return getUTCDayKey(r); };
             const mov = {};
+            const add = (b, n) => { const r = new Date(b.getTime()); r.setUTCDate(r.getUTCDate() + n); return getUTCDayKey(r); };
             mov[add(e, -2)] = 'Karfreitag'; mov[add(e, 1)] = 'Ostermontag'; mov[add(e, 39)] = 'Christi Himmelfahrt'; mov[add(e, 50)] = 'Pfingstmontag'; mov[add(e, 60)] = 'Fronleichnam';
             return mov[key] || null;
+        }
+
+        function getEventForDate(d) {
+            let res = { name: '', class: '', isHoliday: false };
+            if (d.getDay() === 0 || d.getDay() === 6) res = { name: 'Kein Ereignis (Wochenende)', class: 'event-none' };
+            else {
+                const diff = daysSinceUTC(REFERENCE_MONDAY, d);
+                let idx = ((diff % CYCLE_DAYS) + CYCLE_DAYS) % CYCLE_DAYS;
+                if (idx < 7) res = Object.assign({}, events[0]); else if (idx < 14) res = Object.assign({}, events[1]); else if (idx <= 20) res = Object.assign({}, events[2]); else res = { name: 'Kein Ereignis (Pause)', class: 'event-none' };
+            }
+            const h = getHolidayName(new Date(d.getTime()));
+            if (h) { res.isHoliday = true; res.holidayName = h; res.name = `Feiertag (${h})`; }
+            return res;
         }
 
         window.openModal = (k) => { 
@@ -230,19 +241,6 @@
             await window.updateAllEventsFirebase(window.userEvents); closeModal(); renderCalendar();
         };
 
-        function getEventForDate(d) {
-            let res = { name: '', class: '', isHoliday: false };
-            if (d.getDay() === 0 || d.getDay() === 6) res = { name: 'Wochenende', class: 'event-none' };
-            else {
-                const diff = Math.floor((Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) - Date.UTC(REFERENCE_MONDAY.getFullYear(), REFERENCE_MONDAY.getMonth(), REFERENCE_MONDAY.getDate())) / MS_PER_DAY);
-                let idx = ((diff % CYCLE_DAYS) + CYCLE_DAYS) % CYCLE_DAYS;
-                if (idx < 7) res = Object.assign({}, events[0]); else if (idx < 14) res = Object.assign({}, events[1]); else if (idx <= 20) res = Object.assign({}, events[2]); else res = { name: 'kein Ereignis', class: 'event-none' };
-            }
-            const h = getHolidayName(d);
-            if (h) { res.isHoliday = true; res.holidayName = h; res.name = `Feiertag (${h})`; }
-            return res;
-        }
-
         function renderCalendar() {
             calendarGridWrapper.innerHTML = ''; const y = currentDate.getFullYear(), m = currentDate.getMonth();
             monthYearEl.textContent = `${currentDate.toLocaleString('de-DE', { month: 'long' })} ${y}`;
@@ -263,7 +261,7 @@
                 calendarGridWrapper.appendChild(dayEl);
             }
             const cE = getEventForDate(new Date()); 
-            currentWeekEventEl.textContent = cE.isHoliday ? cE.holidayName : cE.name.replace(' (kein Ereignis)', '').replace(' (Wochenende)', '');
+            currentWeekEventEl.textContent = cE.isHoliday ? cE.holidayName : cE.name.replace(' (Pause)', '').replace(' (Wochenende)', '');
         }
 
         prevMonthBtn.onclick = () => { currentDate.setMonth(currentDate.getMonth() - 1); renderCalendar(); };
