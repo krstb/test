@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Flugverkehr</title>
+    <title>Sonne und Mond</title>
     
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192.png"> 
@@ -15,7 +15,6 @@
     <link rel="apple-touch-icon" href="icon-192.png">
 
     <script>
-      // Service Worker Registrierung
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
           navigator.serviceWorker.register('sw.js')
@@ -23,222 +22,136 @@
         });
       }
     </script>
-    
+
     <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://unpkg.com/tone@14.8.49/build/Tone.js"></script>
     <style>
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap');
-        
-        /* Fix für PWA-Ränder */
-    html {background-color: #000000 !important;}
-        
-        body { font-family: 'Inter', sans-serif; background-color: #f4f7f9; }
-        .loader {
-            border-top-color: #3b82f6;
-            -webkit-animation: spin 1s ease-in-out infinite;
-            animation: spin 1s ease-in-out infinite;
-        }
-        @-webkit-keyframes spin { 0% { -webkit-transform: rotate(0deg); } 100% { -webkit-transform: rotate(360deg); } }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-        .sortable-header { user-select: none; position: relative; padding-right: 2.5rem !important; }
-        .sort-indicator { font-size: 0.75em; opacity: 0.5; margin-left: 0.3em; position: absolute; top: 50%; transform: translateY(-50%); right: 0.5rem; transition: opacity 0.2s; line-height: 1; }
-        .sortable-header.sorted .sort-indicator { opacity: 1; font-weight: bold; }
-        .sortable-header:not(.sorted) .sort-indicator { opacity: 0; }
-        .sortable-header:not(.sorted):hover .sort-indicator { opacity: 0.5; }
-        .collapsible-content { transition: all 0.3s ease-out; overflow: hidden; }
-        
-        /* GPS Status Styles */
-        #gps-status { font-size: 0.75rem; font-weight: bold; padding: 4px 10px; border-radius: 8px; display: inline-block; margin-bottom: 0.5rem; }
-        .gps-active { background: #dcfce7; color: #166534; border: 1px solid #166534; }
-        .gps-fallback { background: #fee2e2; color: #991b1b; border: 1px solid #991b1b; }
+        html { background-color: #000000 !important; }
+        body { background-color: #131797; }
+        .app-container { background: #1e293b; border-radius: 2rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
+        .card { background: #f8fafc; border-radius: 1.25rem; transition: all 0.3s ease; border: 1px solid #e2e8f0; color: #1e293b; }
+        .tab-active-sun { background: #fbbf24; color: #0f172a; font-weight: 700; border-radius: 0.75rem; }
+        .tab-active-moon { background: #94a3b8; color: #ffffff; font-weight: 700; border-radius: 0.75rem; }
+        .tab-active-planet { background: #06b6d4; color: #ffffff; font-weight: 700; border-radius: 0.75rem; }
+        .tab-inactive { color: #94a3b8; }
+        input { color-scheme: dark; border: 1px solid #475569 !important; background: #334155; }
+        .altitude-meter { width: 14px; height: 45px; background: #e2e8f0; border-radius: 6px; overflow: hidden; position: relative; border: 1px solid #cbd5e1; }
+        .altitude-fill { position: absolute; bottom: 0; width: 100%; transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
+        #gps-status { font-size: 0.65rem; font-weight: bold; margin-bottom: 1rem; padding: 4px 10px; border-radius: 20px; display: inline-block; }
+        .gps-active { background: #064e3b; color: #34d399; border: 1px solid #059669; }
+        .gps-fallback { background: #450a0a; color: #f87171; border: 1px solid #b91c1c; }
     </style>
 </head>
-<body class="p-4 md:p-8 min-h-screen">
+<body class="flex items-start justify-center min-h-screen p-4 pt-4 text-slate-200 font-sans">
 
-    <header class="text-center mb-8 bg-white p-6 rounded-xl shadow-lg">
-        <h1 class="text-3xl font-bold text-gray-800">Flugverkehrs-Tracker 🛫</h1>
-        <div id="status-message" class="mt-4 p-2 text-sm font-medium text-blue-700 bg-blue-100 rounded-lg">Wird geladen...</div>
-        <button id="audio-init-button" class="mt-4 px-4 py-2 bg-green-500 text-white rounded-md hover:bg-green-600 transition hidden">Audio starten (Tippen zum Aktivieren)</button>
-    </header>
-    
-    <div id="location-container" class="mb-8 bg-white rounded-xl shadow-lg border-l-4 border-indigo-500" data-state="open">
-        <div id="location-header" class="p-4 md:p-6 cursor-pointer flex justify-between items-center bg-indigo-50 hover:bg-indigo-100 rounded-t-xl transition duration-150">
-            <h2 class="text-xl font-semibold text-indigo-700">Suchbereich & Standort</h2>
-            <svg id="location-chevron" class="w-6 h-6 text-indigo-600 transform transition duration-300" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
-        </div>
-        <div id="location-content" class="collapsible-content p-4 md:p-6 pt-0">
-            <div class="mb-4 pt-4">
-                <div id="gps-status" class="gps-fallback">INITIALISIERUNG...</div>
-                <label for="locationSelect" class="block text-sm font-medium text-gray-700 mt-2">Schnellauswahl Standorte</label>
-                <select id="locationSelect" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border bg-white">
-                    <option value="gps" selected>🛰️ Aktueller Standort (GPS)</option>
-                    <option value="48.362998,10.838984" data-name="Stadtbergen">Stadtbergen</option> 
-                    <option value="48.32164602,10.91165543" data-name="Haunstetten">Haunstetten</option> 
-                    <option value="48.425,10.932" data-name="Augsburg (EDMA)">Augsburg (EDMA)</option>
-                    <option value="48.35,11.77" data-name="München (EDDM)">München (EDDM)</option>
-                    <option value="48.34039104,11.79485321" data-name="Besucherhügel 2">Besucherhügel 2</option>
-                    <option value="50.033,8.571" data-name="Frankfurt (EDDF)">Frankfurt (EDDF)</option>
-                    <option value="52.3667,13.5033" data-name="Berlin (EDDB)">Berlin (EDDB)</option>
-                    <option value="53.6304,9.9882" data-name="Hamburg (EDDH)">Hamburg (EDDH)</option>
-                    <option value="53.0475,8.78667" data-name="Bremen (EDDW)">Bremen (EDDW)</option>
-                </select>
-            </div>
-            <div class="grid grid-cols-3 gap-4 items-end pt-4 border-t border-gray-200">
-                <div class="opacity-50 pointer-events-none">
-                    <label for="centerLat" class="block text-sm font-medium text-gray-700">Breite (Lat)</label>
-                    <input type="number" id="centerLat" value="48.362998" step="0.0001" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" readonly>
-                </div>
-                <div class="opacity-50 pointer-events-none">
-                    <label for="centerLon" class="block text-sm font-medium text-gray-700">Länge (Lon)</label>
-                    <input type="number" id="centerLon" value="10.838984" step="0.0001" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border" readonly>
-                </div>
-                <div>
-                    <label for="radiusKm" class="block text-sm font-medium text-gray-700">Radius (km)</label>
-                    <input type="number" id="radiusKm" value="20" min="10" step="5" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 p-2 border">
-                </div>
-            </div>
-            <p id="current-bbox" class="mt-3 text-xs text-gray-500"></p>
-        </div>
-    </div>
+    <div class="app-container p-6 max-w-sm w-full mx-auto text-center border border-slate-700">
+        <h1 class="text-xl font-black mb-1 text-white tracking-tight">Astronomische Ereignisse</h1> 
+        <div id="gps-status" class="gps-fallback">INITIALISIERUNG...</div>
 
-    <div id="filter-container" class="mb-8 bg-white rounded-xl shadow-lg border-l-4 border-teal-500" data-state="closed">
-         <div id="filter-header" class="p-4 md:p-6 cursor-pointer flex justify-between items-center bg-teal-50 hover:bg-teal-100 rounded-t-xl transition duration-150">
-            <h2 class="text-xl font-semibold text-teal-700">Flüge filtern</h2>
-            <svg id="filter-chevron" class="w-6 h-6 text-teal-600 transform transition duration-300 rotate-180" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+        <div class="flex space-x-2 mb-6">
+            <input type="date" id="date-picker" class="p-2 rounded-xl text-xs w-1/2 outline-none text-white">
+            <input type="time" id="time-picker" class="p-2 rounded-xl text-xs w-1/2 outline-none text-white">
         </div>
-        <div id="filter-content" class="collapsible-content p-4 md:p-6 pt-0 hidden">
-            <div class="grid grid-cols-2 md:grid-cols-6 gap-4">
-                <div class="col-span-2 md:col-span-1">
-                    <label for="filterCallsign" class="block text-sm font-medium text-gray-700">Flugnummer/Rufzeichen</label>
-                    <input type="text" id="filterCallsign" placeholder="z.B. LHA" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 p-2 border">
-                </div>
-                <div class="col-span-2 md:col-span-2">
-                    <label for="filterCountry" class="block text-sm font-medium text-gray-700">Herkunftsland</label>
-                    <select id="filterCountry" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 p-2 border bg-white">
-                        <option value="">Alle Länder</option>
-                    </select>
-                </div>
-                <div class="col-span-2 md:col-span-3 grid grid-cols-2 gap-4">
-                    <div>
-                        <label for="filterMinAltitude" class="block text-sm font-medium text-gray-700">Min. Baro-Höhe (ft)</label>
-                        <input type="number" id="filterMinAltitude" placeholder="z.B. 10000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 p-2 border">
+        
+        <div id="tab-bar" class="flex p-1 bg-slate-800 rounded-xl mb-8">
+            <button data-view="sun" id="btn-sun" class="flex-1 py-2 text-sm transition tab-active-sun">Sonne</button>
+            <button data-view="moon" id="btn-moon" class="flex-1 py-2 text-sm transition tab-inactive">Mond</button>
+            <button data-view="planet" id="btn-planet" class="flex-1 py-2 text-sm transition tab-inactive">Planeten</button>
+        </div>
+
+        <div id="views-container" class="space-y-4">
+            <div id="sun-view" class="space-y-4">
+                <div class="card p-5 shadow-md">
+                    <div class="flex justify-between items-center mb-4">
+                        <div class="text-left">
+                            <span class="block text-[10px] text-emerald-600 uppercase font-black tracking-widest">Aufgang</span>
+                            <span id="sunrise-time" class="text-xl font-bold">--:--</span>
+                        </div>
+                        <div class="text-center px-2 border-x border-slate-200">
+                            <span class="block text-[10px] text-amber-600 uppercase font-black tracking-widest">Höchststand</span>
+                            <span id="sun-transit" class="text-xl font-bold">--:--</span>
+                        </div>
+                        <div class="text-right">
+                            <span class="block text-[10px] text-rose-600 uppercase font-black tracking-widest">Untergang</span>
+                            <span id="sunset-time" class="text-xl font-bold">--:--</span>
+                        </div>
                     </div>
-                    <div>
-                        <label for="filterMaxAltitude" class="block text-sm font-medium text-gray-700">Max. Baro-Höhe (ft)</label>
-                        <input type="number" id="filterMaxAltitude" placeholder="z.B. 30000" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 p-2 border">
-                    </div>
-                    <p class="col-span-2 text-xs text-gray-500 mt-1">Hinweis: Filterung nur nach **Barometrischer Höhe (ft)**.</p>
                 </div>
-                <div class="col-span-2 md:col-span-3 grid grid-cols-2 gap-4">
-                    <div>
-                        <label for="filterMinSpeed" class="block text-sm font-medium text-gray-700">Min. Geschw. (km/h)</label>
-                        <input type="number" id="filterMinSpeed" placeholder="z.B. 300" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 p-2 border">
-                    </div>
-                    <div>
-                        <label for="filterMaxSpeed" class="block text-sm font-medium text-gray-700">Max. Geschw. (km/h)</label>
-                        <input type="number" id="filterMaxSpeed" placeholder="z.g. 800" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-teal-500 focus:ring-teal-500 p-2 border">
+                <div class="card p-4 flex items-center space-x-5 shadow-md">
+                    <div class="altitude-meter"><div id="sun-alt-fill" class="altitude-fill bg-amber-500"></div></div>
+                    <div class="text-left">
+                        <span class="text-sm text-amber-600 uppercase font-black">Sonnenstand</span>
+                        <p class="text-sm font-bold text-slate-700" id="sun-azimuth">--</p>
+                        <p class="text-sm text-slate-500 font-medium">Höhe: <span id="sun-altitude" class="text-amber-600 font-bold">--</span></p>
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
-    
-    <div id="flight-container" class="col-span-full relative">
-        <div id="loading-indicator" class="absolute inset-0 bg-white bg-opacity-80 flex justify-center items-center py-12 z-10 hidden">
-            <div class="loader ease-linear rounded-full border-4 border-t-4 border-gray-200 h-12 w-12 mr-4"></div>
-            <span class="text-gray-600 font-semibold">Lade Flugdaten...</span>
+
+            <div id="moon-view" class="hidden space-y-4">
+                <div class="card p-5 shadow-md">
+                    <div class="flex items-center justify-between">
+                        <div id="moon-phase-emoji" class="text-5xl">🌑</div>
+                        <div class="text-right">
+                            <p id="moon-phase-text" class="text-sm font-black uppercase tracking-tighter text-slate-800"></p>
+                            <div class="mt-2 py-1 px-3 bg-slate-200 rounded-md">
+                                <p class="text-sm text-slate-500 uppercase font-bold">Vollmond am</p>
+                                <p id="next-full-moon" class="text-sm font-bold text-sky-700"></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="card p-4 flex items-center space-x-5 shadow-md">
+                    <div class="altitude-meter"><div id="moon-alt-fill" class="altitude-fill bg-slate-400"></div></div>
+                    <div class="text-left">
+                        <span class="text-sm text-slate-500 uppercase font-black">Mondstand</span>
+                        <p class="text-sm font-bold text-slate-700" id="moon-azimuth">--</p>
+                        <p class="text-sm text-slate-500 font-medium">Höhe: <span id="moon-altitude" class="text-slate-700 font-bold">--</span></p>
+                    </div>
+                </div>
+            </div>
+            
+            <div id="planet-view" class="hidden space-y-2"></div>
         </div>
     </div>
 
-    <footer class="mt-10 text-center text-xs text-gray-500">
-        <p>Daten bereitgestellt durch OpenSky Network. Entfernung zum Zentrum des Suchbereichs.</p>
-        <p>Barometrische Höhe (ft) für Filterung/Anzeige. Geo-Höhe (m) als Ergänzung.</p>
-    </footer>
-
+    <script src="https://cdn.jsdelivr.net/npm/suncalc@1.8.0/suncalc.js"></script>
     <script>
-        const synth = new Tone.Synth({
-            oscillator: { type: 'square' },
-            envelope: { attack: 0.005, decay: 0.2, sustain: 0.01, release: 0.5 }
-        }).toDestination();
-        let isToneActive = false;
-        const DISTANCE_THRESHOLD = 0.5;
-
-        function playSuccessTone() {
-            if (Tone.context.state !== 'running') {
-                document.getElementById('audio-init-button').classList.remove('hidden');
-                return;
-            }
-            if (isToneActive) synth.triggerAttackRelease("C5", "8n");
-        }
-
-        function startAudioContext() {
-            if (Tone.context.state !== 'running') {
-                Tone.start().then(() => {
-                    console.log("AudioContext gestartet.");
-                    document.getElementById('audio-init-button').classList.add('hidden');
-                    isToneActive = true;
-                    synth.triggerAttackRelease("G4", "16n");
-                }).catch(err => console.error("Fehler beim Starten des AudioContext:", err));
-            } else {
-                document.getElementById('audio-init-button').classList.add('hidden');
-                isToneActive = true;
-            }
-        }
-
-        function openInGoogleMaps(lat, lon, callsign) {
-            window.open(`https://www.google.com/maps?q=${lat},${lon}&ll=${lat},${lon}&z=12`, '_blank');
-            console.log(`Öffne Google Maps für Flug ${callsign} bei: ${lat.toFixed(6)}, ${lon.toFixed(6)}.`);
-        }
-
-        const OPENSKY_URL = "https://opensky-network.org/api/states/all";
-        const REFRESH_INTERVAL_MS = 10000;
-        const DEG_TO_KM = 111.32;
-
-        let refreshInterval = null, isFetching = false, allFetchedFlights = [], displayedFlights = [],
-            lastFlightData = {}, currentSort = { key: 'distance_km', direction: 'asc' }, lastDisplayedIcao24Set = new Set();
-
-        const flightContainer = document.getElementById('flight-container'), statusMessage = document.getElementById('status-message'),
-            loadingIndicator = document.getElementById('loading-indicator'), centerLatInput = document.getElementById('centerLat'),
-            centerLonInput = document.getElementById('centerLon'), radiusKmInput = document.getElementById('radiusKm'),
-            locationSelect = document.getElementById('locationSelect'), currentBBoxText = document.getElementById('current-bbox'),
-            filterCallsignInput = document.getElementById('filterCallsign'), filterCountrySelect = document.getElementById('filterCountry'),
-            filterMinAltitudeInput = document.getElementById('filterMinAltitude'), filterMaxAltitudeInput = document.getElementById('filterMaxAltitude'),
-            filterMinSpeedInput = document.getElementById('filterMinSpeed'), filterMaxSpeedInput = document.getElementById('filterMaxSpeed'),
-            locationContainer = document.getElementById('location-container'), locationHeader = document.getElementById('location-header'),
-            locationContent = document.getElementById('location-content'), locationChevron = document.getElementById('location-chevron'),
-            filterContainer = document.getElementById('filter-container'), filterHeader = document.getElementById('filter-header'),
-            filterContent = document.getElementById('filter-content'), filterChevron = document.getElementById('filter-chevron');
-
-        const STORAGE_KEY_PREFIX = 'flightTracker_', DEFAULT_LAT = "48.362998", DEFAULT_LON = "10.838984",
-            DEFAULT_SELECT_VALUE = "gps", DEFAULT_RADIUS = "20",
-            STORAGE_KEY_LOCATION_TOGGLE = STORAGE_KEY_PREFIX + 'locationToggle', STORAGE_KEY_FILTER_TOGGLE = STORAGE_KEY_PREFIX + 'filterToggle';
-
-        // GPS Logik Integration
+        // GPS & Koordinaten Logik (aus fotolicht.html)
+        const stdLat = 48.3631, stdLng = 10.8444; // Stadtbergen Standard
+        const savedCoords = localStorage.getItem('sonnemond_coords');
+        const initialCoords = savedCoords ? JSON.parse(savedCoords) : { lat: stdLat, lng: stdLng };
+        
+        let LAT = initialCoords.lat;
+        let LON = initialCoords.lng;
         let isGpsActive = false;
-        const stdLat = 48.362998, stdLon = 10.838984;
+        let lastUpdateTimestamp = 0;
+
+        let currentView = 'sun';
+        let isUserEditing = false;
+        let autoUpdateActive = true;
 
         function updateStatusDisplay() {
             const statusDiv = document.getElementById('gps-status');
-            const lat = parseFloat(centerLatInput.value);
-            const lon = parseFloat(centerLonInput.value);
-            const label = isGpsActive ? "🟢 GPS AKTIV" : (lat.toFixed(4) === stdLat.toFixed(4) ? "🔴 STADTBERGEN" : "🔴 MANUELL/GESPEICHERT");
+            const label = isGpsActive ? "🟢 GPS AKTIV" : (LAT === stdLat ? "🔴 STADTBERGEN" : "🔴 GESPEICHERT");
             statusDiv.className = isGpsActive ? "gps-active" : "gps-fallback";
-            statusDiv.innerHTML = `${label} <span style="opacity:0.7; font-size:0.65rem; margin-left:5px;">${lat.toFixed(4)} / ${lon.toFixed(4)}</span>`;
+            statusDiv.innerHTML = `${label} <span style="opacity:0.7; font-size:0.6rem; margin-left:5px;">${LAT.toFixed(4)} , ${LON.toFixed(4)}</span>`;
         }
 
         function updateLocation() {
-            if (locationSelect.value !== 'gps') return;
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (p) => {
                         const newLat = p.coords.latitude;
                         const newLng = p.coords.longitude;
-                        if (!isGpsActive || Math.abs(newLat - parseFloat(centerLatInput.value)) > 0.0005 || Math.abs(newLng - parseFloat(centerLonInput.value)) > 0.0005) {
-                            centerLatInput.value = newLat.toFixed(6);
-                            centerLonInput.value = newLng.toFixed(6);
+                        lastUpdateTimestamp = Date.now();
+
+                        // Update nur bei signifikanter Änderung oder erstem GPS-Fix
+                        if (!isGpsActive || Math.abs(newLat - LAT) > 0.005 || Math.abs(newLng - LON) > 0.005) {
+                            LAT = newLat;
+                            LON = newLng;
                             isGpsActive = true;
+                            localStorage.setItem('sonnemond_coords', JSON.stringify({ lat: LAT, lng: LON }));
                             updateStatusDisplay();
-                            calculateBoundingBox();
+                            update(); // Berechnungen mit neuen Koordinaten triggern
                         }
                         setTimeout(updateLocation, 15000);
                     },
@@ -252,409 +165,183 @@
             }
         }
 
-        function saveSettings() {
-            try {
-                const settings = { lat: centerLatInput.value, lon: centerLonInput.value, radius: radiusKmInput.value,
-                    locationSelect: locationSelect.value, callsign: filterCallsignInput.value, country: filterCountrySelect.value,
-                    minAlt: filterMinAltitudeInput.value, maxAlt: filterMaxAltitudeInput.value, minSpeed: filterMinSpeedInput.value,
-                    maxSpeed: filterMaxSpeedInput.value, sortKey: currentSort.key, sortDir: currentSort.direction,
-                    locationToggle: locationContainer.getAttribute('data-state'), filterToggle: filterContainer.getAttribute('data-state')
-                };
-                for (const key in settings) localStorage.setItem(STORAGE_KEY_PREFIX + key, settings[key]);
-            } catch (e) { console.error("Fehler beim Speichern in localStorage:", e); }
+        // Astronomische Berechnungen
+        function getCompass(deg) {
+            const s = ["N", "NNO", "NO", "ONO", "O", "OSO", "SO", "SSO", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
+            return s[(Math.floor((deg / 22.5) + 0.5) % 16)];
         }
 
-        function loadSettings() {
-            try {
-                centerLatInput.value = localStorage.getItem(STORAGE_KEY_PREFIX + 'lat') || DEFAULT_LAT;
-                centerLonInput.value = localStorage.getItem(STORAGE_KEY_PREFIX + 'lon') || DEFAULT_LON;
-                radiusKmInput.value = localStorage.getItem(STORAGE_KEY_PREFIX + 'radius') || DEFAULT_RADIUS;
-                const savedLocationSelect = localStorage.getItem(STORAGE_KEY_PREFIX + 'locationSelect');
-                locationSelect.value = savedLocationSelect || DEFAULT_SELECT_VALUE;
-                
-                filterCallsignInput.value = localStorage.getItem(STORAGE_KEY_PREFIX + 'callsign') || '';
-                filterCountrySelect.value = localStorage.getItem(STORAGE_KEY_PREFIX + 'country') || '';
-                filterMinAltitudeInput.value = localStorage.getItem(STORAGE_KEY_PREFIX + 'minAlt') || '';
-                filterMaxAltitudeInput.value = localStorage.getItem(STORAGE_KEY_PREFIX + 'maxAlt') || '';
-                filterMinSpeedInput.value = localStorage.getItem(STORAGE_KEY_PREFIX + 'minSpeed') || '';
-                filterMaxSpeedInput.value = localStorage.getItem(STORAGE_KEY_PREFIX + 'maxSpeed') || '';
-                const savedKey = localStorage.getItem(STORAGE_KEY_PREFIX + 'sortKey'), savedDir = localStorage.getItem(STORAGE_KEY_PREFIX + 'sortDir');
-                if (savedKey && savedDir) currentSort = { key: savedKey, direction: savedDir };
-                const savedLocationState = localStorage.getItem(STORAGE_KEY_LOCATION_TOGGLE) || 'open';
-                const savedFilterState = localStorage.getItem(STORAGE_KEY_FILTER_TOGGLE) || 'closed';
-                if (savedLocationState !== 'open') toggleContent(locationContainer, locationContent, locationChevron, false);
-                if (savedFilterState === 'open') toggleContent(filterContainer, filterContent, filterChevron, false);
-            } catch (e) { console.warn("Konnte Einstellungen nicht laden.", e); }
-        }
+        function getNextFullMoon(startDate) {
+    let checkDate = new Date(startDate);
+    let maxFraction = 0;
+    let bestDate = null;
+    let isRising = false;
+
+    // Wir suchen in den nächsten 32 Tagen stündlich
+    for (let i = 0; i < 32 * 24; i++) {
+        let date = new Date(checkDate.getTime() + i * 3600000);
+        let illumination = SunCalc.getMoonIllumination(date);
         
-        function toggleContent(container, content, chevron, updateStorage = true) {
-            const isClosed = container.getAttribute('data-state') === 'closed';
-            content.classList.toggle('hidden', !isClosed);
-            container.setAttribute('data-state', isClosed ? 'open' : 'closed');
-            chevron.classList.toggle('rotate-180', !isClosed);
-            if (updateStorage) saveSettings();
-        }
-
-        function toRad(degrees) { return degrees * (Math.PI / 180); }
-
-        function calculateDistanceAndBearing(lat1, lon1, lat2, lon2) {
-            const R = 6371, dLat = toRad(lat2 - lat1), dLon = toRad(lon2 - lon1), radLat1 = toRad(lat1), radLat2 = toRad(lat2);
-            const a = Math.sin(dLat / 2) ** 2 + Math.cos(radLat1) * Math.cos(radLat2) * Math.sin(dLon / 2) ** 2;
-            const distance = R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-            const y = Math.sin(dLon) * Math.cos(radLat2);
-            const x = Math.cos(radLat1) * Math.sin(radLat2) - Math.sin(radLat1) * Math.cos(radLat2) * Math.cos(dLon);
-            let bearing = (Math.atan2(y, x) * (180 / Math.PI) + 360) % 360;
-            return { distance, bearing };
-        }
-
-        function degreesToCardinal(deg) {
-            const directions = ["N", "NNO", "NO", "ONO", "O", "OSO", "SO", "SSO", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
-            return directions[Math.round(deg / 22.5) % 16];
-        }
-
-        function calculateBoundingBox() {
-            const centerLat = parseFloat(centerLatInput.value), centerLon = parseFloat(centerLonInput.value), radiusKm = parseFloat(radiusKmInput.value);
-            if (isNaN(centerLat) || isNaN(centerLon) || isNaN(radiusKm)) { console.error("Ungültige Eingabe."); return null; }
-            const deltaLat = radiusKm / DEG_TO_KM, deltaLon = radiusKm / (DEG_TO_KM * Math.cos(toRad(centerLat)));
-            const bbox = { lamin: centerLat - deltaLat, lamax: centerLat + deltaLat, lomin: centerLon - deltaLon, lomax: centerLon + deltaLon };
-            currentBBoxText.textContent = `Suchbereich: B(${bbox.lamin.toFixed(4)}°- ${bbox.lamax.toFixed(4)}°), L(${bbox.lomin.toFixed(4)}°- ${bbox.lomax.toFixed(4)}°)`;
-            return bbox;
-        }
-
-        function updateCoordinatesFromSelect() {
-            const selectedValue = locationSelect.value;
-            if (selectedValue === 'gps') {
-                isGpsActive = false; // Reset für neue Standortabfrage
-                updateLocation();
-                startDataRefresh();
-            } else if (selectedValue) {
-                isGpsActive = false;
-                const [lat, lon] = selectedValue.split(',').map(parseFloat);
-                if (!isNaN(lat) && !isNaN(lon)) {
-                    centerLatInput.value = lat.toFixed(6);
-                    centerLonInput.value = lon.toFixed(6);
-                    updateStatusDisplay();
-                    startDataRefresh();
-                }
-            } else {
-                if (refreshInterval) { clearInterval(refreshInterval); refreshInterval = null; }
-                alertUser("Automatischer Refresh gestoppt. Bitte Standort wählen.", "indigo");
-                saveSettings();
+        // 1. Wir müssen warten, bis die Beleuchtung anfängt zu steigen
+        // (um nicht ein Maximum in der unmittelbaren Vergangenheit zu fangen)
+        if (i > 0) {
+            let prevDate = new Date(date.getTime() - 3600000);
+            let prevIllum = SunCalc.getMoonIllumination(prevDate);
+            if (illumination.fraction > prevIllum.fraction) {
+                isRising = true;
             }
         }
-        
-        function getApproachStatus(icao24, currentDistanceKm) {
-            const lastData = lastFlightData[icao24];
-            if (!lastData || lastData.distance_km === undefined) return 'Gleich';
-            const distanceChange = currentDistanceKm - lastData.distance_km;
-            if (distanceChange < -DISTANCE_THRESHOLD) return 'Annäherung';
-            if (distanceChange > DISTANCE_THRESHOLD) return 'Entfernung';
-            return 'Gleich';
+
+        // 2. Wenn sie steigt, suchen wir den höchsten Punkt
+        if (isRising) {
+            if (illumination.fraction > maxFraction) {
+                maxFraction = illumination.fraction;
+                bestDate = date;
+            } else if (maxFraction > 0.98) { 
+                // Sobald die Beleuchtung wieder sinkt UND wir über 98% waren, 
+                // haben wir den Vollmond gefunden.
+                break;
+            }
         }
-        
-        function formatFlightData(state, centerLat, centerLon) {
-            if (state[5] === null || state[6] === null) return null;
-            const icao24 = state[0] || 'N/A', callsign = (state[1] || 'N/A').trim(), origin_country = state[2] || 'N/A';
-            const lon = state[5], lat = state[6], velocity_ms = state[9], track = state[10] ?? 0.0;
-            const { distance, bearing } = calculateDistanceAndBearing(centerLat, centerLon, lat, lon);
-            const approach_status = getApproachStatus(icao24, distance);
-            const alt_ft_baro = state[7] !== null ? Math.round(state[7] * 3.28084) : 'N/A';
-            const alt_m_geo = state[13] !== null ? Math.round(state[13]) : 'N/A';
-            const velocity_kmh = velocity_ms !== null ? Math.round(velocity_ms * 3.6) : 'N/A';
-            lastFlightData[icao24] = { distance_km: distance };
-            return { icao24, callsign, origin_country, lon, lat, alt_ft_baro, alt_m_geo, velocity_kmh, track,
-                velocity_unit: velocity_kmh !== 'N/A' ? 'km/h' : '', distance_km: parseFloat(distance.toFixed(1)),
-                bearing_degrees: Math.round(bearing), bearing_cardinal: degreesToCardinal(bearing), approach_status
-            };
+    }
+
+    if (bestDate) {
+        return bestDate.toLocaleDateString('de-DE') + ' ' + 
+               bestDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
+    }
+    return "Berechne...";
+}
+
+
+        function getPlanetRealPos(id, date) {
+            const d = (date.getTime() / 86400000) - (new Date('2000-01-01T12:00:00Z').getTime() / 86400000);
+            const rev = x => x - Math.floor(x / 360.0) * 360.0;
+            const rad = x => x * Math.PI / 180.0;
+            const deg = x => x * 180.0 / Math.PI;
+
+            const Ms = rev(356.047 + 0.9856002585 * d);
+            const Ls = rev(282.9404 + Ms);
+            const xs = Math.cos(rad(Ls)), ys = Math.sin(rad(Ls));
+
+            let p = id === 'venus'   ? {a:0.7233, e:0.0067, M:rev(48.005+1.60213*d), N:76.68, i:3.39, w:54.89} :
+                    id === 'mars'    ? {a:1.5236, e:0.0934, M:rev(18.602+0.5240*d), N:49.56, i:1.85, w:286.5} :
+                    id === 'jupiter' ? {a:5.2026, e:0.0485, M:rev(19.895+0.083085*d), N:100.45, i:1.303, w:273.87} :
+                                       {a:9.5547, e:0.0555, M:rev(316.967+0.03344*d), N:113.72, i:2.489, w:339.39};
+
+            const E = rad(p.M + deg(p.e * Math.sin(rad(p.M)) * (1 + p.e * Math.cos(rad(p.M)))));
+            const xv = p.a * (Math.cos(E) - p.e), yv = p.a * (Math.sqrt(1 - p.e*p.e) * Math.sin(E));
+            const r = Math.sqrt(xv*xv + yv*yv), lonP = rev(deg(Math.atan2(yv, xv)) + p.w);
+
+            const xh = r * (Math.cos(rad(p.N)) * Math.cos(rad(lonP)) - Math.sin(rad(p.N)) * Math.sin(rad(lonP)) * Math.cos(rad(p.i)));
+            const yh = r * (Math.sin(rad(p.N)) * Math.cos(rad(lonP)) + Math.cos(rad(p.N)) * Math.sin(rad(lonP)) * Math.cos(rad(p.i)));
+            const zh = r * (Math.sin(rad(lonP)) * Math.sin(rad(p.i)));
+
+            const xg = xh + xs, yg = yh + ys, zg = zh;
+            const ecl = rad(23.4393);
+            const xeq = xg, yeq = yg*Math.cos(ecl)-zg*Math.sin(ecl), zeq = yg*Math.sin(ecl)+zg*Math.cos(ecl);
+
+            const ra = rev(deg(Math.atan2(yeq, xeq))), dec = deg(Math.atan2(zeq, Math.sqrt(xeq*xeq + yeq*yeq)));
+            const GMST = rev(280.4606 + 360.9856473 * d);
+            const sidereal = rev(GMST + LON);
+            const ha = rad(rev(sidereal - ra));
+            
+            const alt = deg(Math.asin(Math.sin(rad(LAT)) * Math.sin(rad(dec)) + Math.cos(rad(LAT)) * Math.cos(rad(dec)) * Math.cos(ha)));
+            const az = rev(deg(Math.atan2(Math.sin(ha), Math.cos(ha) * Math.sin(rad(LAT)) - Math.tan(rad(dec)) * Math.cos(rad(LAT)))) + 180);
+            return { azimuth: az, altitude: alt };
         }
 
-        function populateCountryFilter(flights) {
-            const countries = new Set(flights.map(f => f.origin_country).filter(c => c && c !== 'N/A'));
-            const sortedCountries = Array.from(countries).sort();
-            let optionsHtml = '<option value="">Alle Länder</option>' + sortedCountries.map(c => `<option value="${c}">${c}</option>`).join('');
-            const currentValue = localStorage.getItem(STORAGE_KEY_PREFIX + 'country') || '';
-            filterCountrySelect.innerHTML = optionsHtml;
-            filterCountrySelect.value = currentValue;
+        function update() {
+            const dateVal = document.getElementById('date-picker').value;
+            const timeVal = document.getElementById('time-picker').value;
+            const targetDate = new Date(`${dateVal}T${timeVal}`);
+
+            const sT = SunCalc.getTimes(targetDate, LAT, LON);
+            const sP = SunCalc.getPosition(targetDate, LAT, LON);
+            const mP = SunCalc.getMoonPosition(targetDate, LAT, LON);
+            const mI = SunCalc.getMoonIllumination(targetDate);
+
+            document.getElementById('sunrise-time').textContent = sT.sunrise.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+            document.getElementById('sunset-time').textContent = sT.sunset.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+            document.getElementById('sun-transit').textContent = sT.solarNoon.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
+            
+            const sAlt = Math.round(sP.altitude * 180/Math.PI);
+            document.getElementById('sun-altitude').textContent = sAlt + '°';
+            document.getElementById('sun-alt-fill').style.height = Math.max(0, sAlt) / 90 * 100 + '%';
+            document.getElementById('sun-azimuth').textContent = getCompass(sP.azimuth * 180/Math.PI + 180) + ' (' + Math.round(sP.azimuth * 180/Math.PI + 180) + '°)';
+
+            const mAlt = Math.round(mP.altitude * 180/Math.PI);
+            document.getElementById('moon-altitude').textContent = mAlt + '°';
+            document.getElementById('moon-alt-fill').style.height = Math.max(0, mAlt) / 90 * 100 + '%';
+            document.getElementById('moon-azimuth').textContent = getCompass(mP.azimuth * 180/Math.PI + 180) + ' (' + Math.round(mP.azimuth * 180/Math.PI + 180) + '°)';
+            
+            document.getElementById('moon-phase-emoji').textContent = ['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'][Math.floor(mI.phase*8)%8];
+            const phaseNames = ['Neumond', 'Zunehmend', 'Erstes Viertel', 'Zunehmend', 'Vollmond', 'Abnehmend', 'Letztes Viertel', 'Abnehmend'];
+            document.getElementById('moon-phase-text').textContent = phaseNames[Math.floor(mI.phase*8)%8];
+            document.getElementById('next-full-moon').textContent = getNextFullMoon(targetDate);
+
+            if(currentView === 'planet') {
+                const ps = [
+                    {id:'venus', n:'Venus', e:'♀️', c:'#0891b2'}, 
+                    {id:'mars', n:'Mars', e:'♂️', c:'#dc2626'}, 
+                    {id:'jupiter', n:'Jupiter', e:'♃', c:'#7c3aed'},
+                    {id:'saturn', n:'Saturn', e:'♄', c:'#b45309'}
+                ];
+                document.getElementById('planet-view').innerHTML = ps.map(p => {
+                    const pos = getPlanetRealPos(p.id, targetDate);
+                    const h = Math.round(pos.altitude);
+                    return `<div class="card p-3 flex items-center space-x-5 shadow-sm" style="border-left: 6px solid ${p.c}">
+                        <div class="altitude-meter"><div class="altitude-fill" style="height: ${Math.max(0, h)/90*100}%; background-color: ${p.c}"></div></div>
+                        <div class="text-left leading-tight">
+                            <span class="text-sm uppercase font-black" style="color: ${p.c}">${p.n} ${p.e}</span>
+                            <p class="text-sm font-bold text-slate-700">${getCompass(pos.azimuth)} (${Math.round(pos.azimuth)}°)</p>
+                            <p class="text-sm text-slate-500 font-medium">Höhe: <span style="color: ${p.c}" class="font-bold">${h}°</span></p>
+                        </div>
+                    </div>`;
+                }).join('');
+            }
         }
 
-        function applyFilters() {
-            saveSettings();
-            const callsignFilter = filterCallsignInput.value.trim().toUpperCase(), countryFilter = filterCountrySelect.value;
-            const minAlt = parseFloat(filterMinAltitudeInput.value) || 0, maxAlt = parseFloat(filterMaxAltitudeInput.value) || Infinity;
-            const minSpeed = parseFloat(filterMinSpeedInput.value) || 0, maxSpeed = parseFloat(filterMaxSpeedInput.value) || Infinity;
+        function tick() {
+            if (isUserEditing || !autoUpdateActive) return;
+            const now = new Date();
+            const dateInput = document.getElementById('date-picker');
+            const timeInput = document.getElementById('time-picker');
+            const todayStr = now.toLocaleDateString('en-CA');
+            const currentTimeStr = now.toTimeString().slice(0,5);
+            let changed = false;
+            if (dateInput.value !== todayStr) { dateInput.value = todayStr; changed = true; }
+            if (timeInput.value !== currentTimeStr) { timeInput.value = currentTimeStr; changed = true; }
+            if (changed) update();
+        }
 
-            displayedFlights = allFetchedFlights.filter(f => {
-                const alt_ft = f.alt_ft_baro !== 'N/A' ? f.alt_ft_baro : null;
-                const speed = f.velocity_kmh !== 'N/A' ? f.velocity_kmh : null;
-                if (callsignFilter && !f.callsign.toUpperCase().includes(callsignFilter)) return false;
-                if (countryFilter && f.origin_country !== countryFilter) return false;
-                if (alt_ft !== null ? (alt_ft < minAlt || alt_ft > maxAlt) : (minAlt > 0 || maxAlt < Infinity)) return false;
-                if (speed !== null ? (speed < minSpeed || speed > maxSpeed) : (minSpeed > 0 || maxSpeed < Infinity)) return false;
-                return true;
+        // Event Listener & Initialisierung
+        const datePicker = document.getElementById('date-picker');
+        const timePicker = document.getElementById('time-picker');
+
+        [datePicker, timePicker].forEach(picker => {
+            picker.addEventListener('focus', () => { isUserEditing = true; });
+            picker.addEventListener('blur', () => { isUserEditing = false; });
+            picker.addEventListener('input', () => { autoUpdateActive = false; update(); });
+        });
+
+        document.querySelectorAll('[data-view]').forEach(t => t.addEventListener('click', e => {
+            currentView = e.target.dataset.view;
+            const btns = { sun: 'btn-sun', moon: 'btn-moon', planet: 'btn-planet' };
+            Object.keys(btns).forEach(key => {
+                document.getElementById(btns[key]).className = `flex-1 py-2 text-sm transition ${key === currentView ? 'tab-active-' + key : 'tab-inactive'}`;
             });
-            
-            sortFlights(currentSort.key, true);
+            ['sun-view','moon-view','planet-view'].forEach(v => document.getElementById(v).classList.toggle('hidden', v !== currentView + '-view'));
+            update();
+        }));
 
-            const currentDisplayedIcao24Set = new Set(displayedFlights.map(f => f.icao24));
-            if (Array.from(currentDisplayedIcao24Set).some(icao => !lastDisplayedIcao24Set.has(icao))) playSuccessTone();
-            lastDisplayedIcao24Set = currentDisplayedIcao24Set;
-
-            const count = displayedFlights.length;
-            const total = allFetchedFlights.length;
-            const time = new Date().toLocaleTimeString('de-DE');
-            const statusText = count > 0 ? `${count} Flüge entsprechen den Filtern. (${total} im Radius. ${time})`
-                                          : `Keine Flüge entsprechen den Filtern. (${total} im Radius. ${time})`;
-            alertUser(statusText, count > 0 ? "green" : "yellow");
-        }
+        const initialNow = new Date();
+        document.getElementById('date-picker').value = initialNow.toLocaleDateString('en-CA');
+        document.getElementById('time-picker').value = initialNow.toTimeString().slice(0,5);
         
-        function getStatusSortValue(status) {
-            const values = { 'Annäherung': 1, 'Gleich': 2, 'Entfernung': 3 };
-            return values[status] || 4;
-        }
-
-        function sortFlights(key, keepDirection = false) {
-            let direction = currentSort.key === key && !keepDirection ? (currentSort.direction === 'asc' ? 'desc' : 'asc')
-                : (keepDirection ? currentSort.direction : 'asc');
-            currentSort = { key, direction };
-            saveSettings();
-
-            const collator = new Intl.Collator('de', { numeric: true });
-            const dir = direction === 'asc' ? 1 : -1;
-
-            displayedFlights.sort((a, b) => {
-                let aVal = a[key], bVal = b[key];
-                if (key === 'approach_status') {
-                    return (getStatusSortValue(aVal) - getStatusSortValue(bVal)) * dir;
-                }
-                const aNA = aVal === 'N/A' || aVal === null, bNA = bVal === 'N/A' || bVal === null;
-                if (aNA && bNA) return 0;
-                if (aNA) return 1 * dir; if (bNA) return -1 * dir;
-                return typeof aVal === 'string' ? collator.compare(aVal, bVal) * dir : (aVal - bVal) * dir;
-            });
-            renderTable();
-        }
-        
-        function getApproachHtml(status) {
-            const map = {
-                'Annäherung': '<span class="text-green-600 font-bold" title="Nähert sich.">🟢 Nähernd</span>',
-                'Entfernung': '<span class="text-red-600 font-bold" title="Entfernt sich.">🔴 Entfernt</span>',
-                'Gleich': '<span class="text-gray-500" title="Distanz +/- konstant.">⚫ Gleich</span>'
-            };
-            return map[status] || '<span class="text-gray-400">?</span>';
-        }
-        
-        const HEADERS = [ { title: 'Status', key: 'approach_status', sortable: true }, { title: 'Entfernung', key: 'distance_km', sortable: true },
-            { title: 'Richtung', key: 'bearing_degrees', sortable: true }, { title: 'Rufzeichen', key: 'callsign', sortable: true },
-            { title: 'Höhe', key: 'alt_ft_baro', sortable: true, tooltip: 'Oben: Baro-Höhe (ft). Unten: Geo-Höhe (m).' },
-            { title: 'Geschw.', key: 'velocity_kmh', sortable: true }, { title: 'Kurs', key: 'track', sortable: true },
-            { title: 'Land', key: 'origin_country', sortable: true }, { title: 'ICAO24', key: 'icao24', sortable: false },
-            { title: 'Position', key: 'lat', sortable: false } ];
-
-        function createTableHeaderHtml() {
-            return HEADERS.map(h => {
-                let indicator = '', classes = 'px-4 py-3 text-left text-xs font-bold text-gray-700 uppercase tracking-wider whitespace-nowrap hidden sm:table-cell';
-                if (h.sortable) {
-                    classes += ' cursor-pointer transition duration-150 sortable-header hover:bg-gray-100 group';
-                    if (currentSort.key === h.key) {
-                        classes += ' sorted';
-                        indicator = `<span class="sort-indicator">${currentSort.direction === 'asc' ? '▼' : '▲'}</span>`;
-                    } else {
-                        indicator = `<span class="sort-indicator">▼</span>`;
-                    }
-                }
-                const title = h.tooltip ? `title="${h.tooltip}"` : '';
-                const sort = h.sortable ? `data-sort-key="${h.key}"` : '';
-                return `<th class="${classes}" ${sort} ${title}>${h.title}${indicator}</th>`;
-            }).join('');
-        }
-
-        function createFlightTableContentHtml(flights) {
-            return flights.map(f => {
-                const baro = f.alt_ft_baro !== 'N/A' ? `<span class="text-sm font-bold text-gray-700 block" title="Barometrische Höhe in Fuß">${f.alt_ft_baro} ft</span>` : '';
-                const geo = f.alt_m_geo !== 'N/A' ? `<span class="text-xs text-indigo-600 block" title="Geo-Höhe in Metern">${f.alt_m_geo} m</span>` : '';
-                const alt = (baro || geo) ? `${baro}${geo}` : 'N/A';
-                const dist = `${f.distance_km.toFixed(1)} km`;
-                const pos = `${f.lat.toFixed(4)}, ${f.lon.toFixed(4)}`;
-                const desktop = `<tr class="hover:bg-gray-50 border-b transition duration-150 ease-in-out hidden sm:table-row">
-                    <td class="px-4 py-3 whitespace-nowrap">${getApproachHtml(f.approach_status)}</td>
-                    <td class="px-4 py-3 font-semibold text-green-700">${dist}</td>
-                    <td class="px-4 py-3"><span class="font-bold">${f.bearing_cardinal}</span><span class="text-xs text-gray-500 block">(${f.bearing_degrees}°)</span></td>
-                    <td class="px-4 py-3 font-semibold text-indigo-700">${f.callsign}</td>
-                    <td class="px-4 py-3">${alt}</td>
-                    <td class="px-4 py-3">${f.velocity_kmh} ${f.velocity_unit}</td>
-                    <td class="px-4 py-3">${f.track.toFixed(0)}°</td>
-                    <td class="px-4 py-3">${f.origin_country}</td>
-                    <td class="px-4 py-3 font-mono text-xs">${f.icao24}</td>
-                    <td class="px-4 py-3"><button class="text-blue-600 hover:text-blue-800 underline font-mono text-xs" onclick="openInGoogleMaps(${f.lat.toFixed(6)}, ${f.lon.toFixed(6)}, '${f.callsign}')" title="Position in Google Maps">${pos}</button></td>
-                </tr>`;
-                const mobile = `<div class="sm:hidden mb-4 p-4 bg-white rounded-lg shadow-md border-l-4 border-indigo-500">
-                    <div class="flex justify-between items-center mb-2"><h3 class="text-lg font-bold text-indigo-700">${f.callsign}</h3><span class="text-sm text-gray-500 font-mono">${f.icao24}</span></div>
-                    <div class="grid grid-cols-2 gap-2 text-sm">
-                        <div class="font-semibold text-green-700">Entfernung: ${dist}</div><div class="font-semibold">${getApproachHtml(f.approach_status)}</div>
-                        <div>Richtung: ${f.bearing_cardinal} (${f.bearing_degrees}°)</div><div>Kurs: ${f.track.toFixed(0)}°</div>
-                        <div class="col-span-2">Höhe: ${baro} ${geo}</div>
-                        <div>Geschw.: ${f.velocity_kmh} ${f.velocity_unit}</div><div>Land: ${f.origin_country}</div>
-                        <div class="col-span-2 mt-2"><button class="text-xs text-blue-600 hover:text-blue-800 underline font-mono" onclick="openInGoogleMaps(${f.lat.toFixed(6)}, ${f.lon.toFixed(6)}, '${f.callsign}')" title="Position in Google Maps">Position: ${pos}</button></div>
-                    </div>
-                </div>`;
-                return { desktop, mobile };
-            }).reduce((acc, val) => ({ desktop: acc.desktop + val.desktop, mobile: acc.mobile + val.mobile }), { desktop: '', mobile: '' });
-        }
-
-        function attachSortListeners() {
-            document.querySelectorAll('.sortable-header').forEach(header => {
-                header.onclick = () => {
-                    const key = header.getAttribute('data-sort-key');
-                    if (key) {
-                        sortFlights(key);
-                    }
-                };
-            });
-        }
-
-        function renderTable() {
-            const flights = displayedFlights;
-            const totalFlights = allFetchedFlights.length;
-            let tableWrapper = document.getElementById('flight-table-wrapper');
-            let mobileWrapper = document.getElementById('flight-mobile-wrapper');
-            if (!tableWrapper) {
-                tableWrapper = document.createElement('div');
-                tableWrapper.id = 'flight-table-wrapper';
-                tableWrapper.className = 'overflow-x-auto bg-white rounded-xl shadow-lg border-t-4 border-indigo-500 mt-8 hidden sm:block';
-                const table = document.createElement('table');
-                table.id = 'flight-table';
-                table.className = 'min-w-full divide-y divide-gray-200';
-                table.innerHTML = `<thead class="bg-teal-100 sticky top-0"><tr>${createTableHeaderHtml()}</tr></thead><tbody id="flight-tbody" class="bg-white divide-y divide-gray-200 text-sm text-gray-800"></tbody>`;
-                tableWrapper.appendChild(table);
-                mobileWrapper = document.createElement('div');
-                mobileWrapper.id = 'flight-mobile-wrapper';
-                mobileWrapper.className = 'sm:hidden space-y-4 mt-4';
-                flightContainer.appendChild(tableWrapper);
-                flightContainer.appendChild(mobileWrapper);
-                attachSortListeners();
-            } else {
-                tableWrapper.querySelector('thead tr').innerHTML = createTableHeaderHtml();
-                attachSortListeners();
-            }
-            tableWrapper.classList.toggle('hidden', flights.length === 0);
-            mobileWrapper.classList.toggle('hidden', flights.length === 0);
-            
-            let noDataMessage = document.getElementById('no-data-message');
-            if (flights.length === 0) {
-                const message = totalFlights > 0 ? `Keine Flüge entsprechen den Filtern (${totalFlights} im Radius)` : 'Keine Flugzeuge im definierten Radius gefunden.';
-                if (!noDataMessage) {
-                    noDataMessage = document.createElement('div');
-                    noDataMessage.id = 'no-data-message';
-                    noDataMessage.className = 'mt-8 p-8 text-center text-lg text-gray-600 bg-yellow-50 rounded-xl shadow-md';
-                    flightContainer.insertBefore(noDataMessage, tableWrapper);
-                }
-                noDataMessage.textContent = message;
-                noDataMessage.style.display = 'block';
-            } else if (noDataMessage) {
-                noDataMessage.style.display = 'none';
-            }
-            
-            const { desktop, mobile } = createFlightTableContentHtml(flights);
-            document.getElementById('flight-tbody').innerHTML = desktop;
-            mobileWrapper.innerHTML = mobile;
-        }
-
-        function alertUser(message, type) {
-            const colors = { blue: "text-blue-700 bg-blue-100", green: "text-green-700 bg-green-100",
-                red: "text-red-700 bg-red-100", yellow: "text-yellow-700 bg-yellow-100", indigo: "text-indigo-700 bg-indigo-100" };
-            statusMessage.className = `mt-4 p-2 text-sm font-medium rounded-lg ${colors[type]}`;
-            statusMessage.textContent = message;
-        }
-        
-        function updateDisplay(data) {
-            loadingIndicator.style.display = 'none';
-            const centerLat = parseFloat(centerLatInput.value), centerLon = parseFloat(centerLonInput.value);
-            const radiusKm = parseFloat(radiusKmInput.value);
-
-            if (isNaN(centerLat) || isNaN(centerLon) || isNaN(radiusKm)) {
-                alertUser("Fehler bei der Verarbeitung der Koordinaten.", "red"); return;
-            }
-
-            const rawFlights = data.states ? data.states.map(s => formatFlightData(s, centerLat, centerLon)).filter(f => f !== null) : [];
-            
-            allFetchedFlights = rawFlights.filter(flight => flight.distance_km <= radiusKm);
-
-            if (allFetchedFlights.length === 0) {
-                lastDisplayedIcao24Set.clear();
-                displayedFlights = [];
-                renderTable();
-                alertUser(`Keine Flugzeuge im Radius gefunden. (${new Date().toLocaleTimeString('de-DE')})`, "yellow");
-                return;
-            }
-
-            populateCountryFilter(allFetchedFlights);
-            applyFilters();
-        }
-
-        async function getFlightData() {
-            if (isFetching) return;
-            isFetching = true;
-            loadingIndicator.style.display = 'flex';
-            const bbox = calculateBoundingBox();
-            if (!bbox) {
-                alertUser("Fehler: Ungültige Standort- oder Radiuseingabe.", "red");
-                isFetching = false;
-                loadingIndicator.style.display = 'none';
-                return;
-            }
-            const url = `${OPENSKY_URL}?${new URLSearchParams(bbox).toString()}`;
-            try {
-                const response = await fetch(url);
-                if (!response.ok) throw new Error(`HTTP-Fehler ${response.status}${response.status === 429 ? ' (Zu viele Anfragen)' : ''}`);
-                const data = await response.json();
-                updateDisplay(data);
-            } catch (error) {
-                console.error("Fehler beim Abrufen der Flugdaten:", error);
-                alertUser(`Fehler: ${error.message}`, "red");
-                if (refreshInterval) { clearInterval(refreshInterval); refreshInterval = null; }
-            } finally {
-                isFetching = false;
-                loadingIndicator.style.display = 'none';
-            }
-        }
-
-        function startDataRefresh() {
-            if (refreshInterval) { clearInterval(refreshInterval); refreshInterval = null; }
-            saveSettings();
-            getFlightData();
-            refreshInterval = setInterval(getFlightData, REFRESH_INTERVAL_MS);
-        }
-        
-        function setupChangeListeners() {
-            [radiusKmInput].forEach(input => {
-                input.addEventListener('input', () => { saveSettings(); calculateBoundingBox(); });
-            });
-            [filterCallsignInput, filterMinAltitudeInput, filterMaxAltitudeInput, filterMinSpeedInput, filterMaxSpeedInput, filterCountrySelect]
-                .forEach(input => input.addEventListener('input', applyFilters));
-            locationHeader.addEventListener('click', () => toggleContent(locationContainer, locationContent, locationChevron));
-            filterHeader.addEventListener('click', () => toggleContent(filterContainer, filterContent, filterChevron));
-        }
-        
-        window.onload = () => {
-            loadSettings();
-            setupChangeListeners();
-            document.getElementById('audio-init-button').addEventListener('click', startAudioContext);
-            if (Tone.context.state !== 'running') {
-                document.getElementById('audio-init-button').classList.remove('hidden');
-                alertUser("Tippen Sie auf 'Audio starten', um Töne zu aktivieren.", "blue");
-            } else { isToneActive = true; }
-            locationSelect.addEventListener('change', updateCoordinatesFromSelect);
-            
-            // Initialer Start: GPS bevorzugen wenn ausgewählt
-            if (locationSelect.value === 'gps') {
-                updateLocation();
-            } else {
-                updateStatusDisplay();
-                startDataRefresh();
-            }
-            calculateBoundingBox();
-        };
+        updateStatusDisplay();
+        update();
+        updateLocation(); // GPS starten
+        setInterval(tick, 1000);
     </script>
 </body>
 </html>
-
