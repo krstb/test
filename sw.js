@@ -1,4 +1,4 @@
-const CACHE_NAME = 'uhrzeit_test-v3'; // Ändere v2 um Updates zu erzwingen
+const CACHE_NAME = 'sonne_mond-v2'; // Ändere v2 zu v3, v4 etc., um Updates zu erzwingen
 const ASSETS = [
   'index.html',
   'manifest.json',

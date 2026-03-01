@@ -1,7 +1,7 @@
 {
-  "short_name": "Uhrzeit_test",
-  "name": "Uhrzeit Weltweit test",
-  "description": "Berechnet Zeitzonen und besondere lokale Zeiten",
+  "short_name": "Sonne Mond",
+  "name": "Sonne und Mond",
+  "description": "Sonnenaufgang Mond und Planeten",
   "start_url": "index.html",
   "display": "standalone",
   "orientation": "portrait",
