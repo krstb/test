@@ -3,359 +3,318 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Sonne und Mond</title>
-    
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" href="icon-192.png"> 
-    <link rel="icon" type="image/svg+xml" href="favicon.svg">
-    <meta name="theme-color" content="#000000">
-    <meta name="color-scheme" content="light">
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <link rel="apple-touch-icon" href="icon-192.png">
-
-    <script>
-      if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-          navigator.serviceWorker.register('sw.js')
-            .catch(err => console.log('SW Fehler:', err));
-        });
-      }
-    </script>
-
-    <script src="https://cdn.tailwindcss.com"></script>
+    <title>PKW Abfahrtskontrolle</title>
+    <!-- Einbindung der SheetJS Bibliothek für den Excel-Export -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        html { background-color: #000000 !important; overscroll-behavior-y: none;}
-        body { background-color: #131797; }
-        .app-container { background: #1e293b; border-radius: 2rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5); }
-        .card { background: #f8fafc; border-radius: 1.25rem; transition: all 0.3s ease; border: 1px solid #e2e8f0; color: #1e293b; }
-        .tab-active-sun { background: #fbbf24; color: #0f172a; font-weight: 700; border-radius: 0.75rem; }
-        .tab-active-moon { background: #94a3b8; color: #ffffff; font-weight: 700; border-radius: 0.75rem; }
-        .tab-active-planet { background: #06b6d4; color: #ffffff; font-weight: 700; border-radius: 0.75rem; }
-        .tab-inactive { color: #94a3b8; }
-        input { color-scheme: dark; border: 1px solid #475569 !important; background: #334155; }
-        .altitude-meter { width: 14px; height: 45px; background: #e2e8f0; border-radius: 6px; overflow: hidden; position: relative; border: 1px solid #cbd5e1; }
-        .altitude-fill { position: absolute; bottom: 0; width: 100%; transition: height 0.6s cubic-bezier(0.34, 1.56, 0.64, 1); }
-        #gps-status { font-size: 0.65rem; font-weight: bold; margin-bottom: 1rem; padding: 4px 10px; border-radius: 20px; display: inline-block; }
-        .gps-active { background: #064e3b; color: #34d399; border: 1px solid #059669; }
-        .gps-fallback { background: #450a0a; color: #f87171; border: 1px solid #b91c1c; }
+        :root {
+            --primary-color: #0f172a;
+            --secondary-color: #f1f5f9;
+            --accent-color: #dc2626;
+            --text-color: #1e293b;
+            --success-color: #16a34a;
+            --bg-color: #e2e8f0;
+        }
+
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            display: flex;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 10px;
+        }
+
+        .app-container {
+            width: 100%;
+            max-width: 700px;
+            background: #ffffff;
+            padding: 1.5rem;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        header {
+            margin-bottom: 1.5rem;
+            border-bottom: 2px solid var(--secondary-color);
+            padding-bottom: 1rem;
+            text-align: center;
+        }
+
+        h1 { font-size: 1.4rem; color: var(--primary-color); margin-bottom: 5px; }
+        
+        .date-display {
+            font-size: 0.9rem;
+            color: #64748b;
+            margin-bottom: 15px;
+        }
+
+        .toolbar {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 1.5rem;
+        }
+
+        .btn {
+            border: none;
+            padding: 10px 15px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 0.85rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: opacity 0.2s;
+        }
+
+        .btn-primary { background: var(--primary-color); color: white; }
+        .btn-excel { background: #16a34a; color: white; }
+        .btn-setup { background: #64748b; color: white; }
+        .btn:hover { opacity: 0.9; }
+
+        /* Task Card */
+        .task-card {
+            background: white;
+            border: 1px solid #e2e8f0;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            padding: 12px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
+        }
+
+        .task-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .task-title { font-weight: 700; font-size: 1rem; color: var(--primary-color); }
+
+        .status-badge {
+            font-size: 0.7rem;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-weight: 800;
+        }
+
+        .status-open { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
+        .status-ok { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
+        .status-fail { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
+
+        textarea {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #e2e8f0;
+            border-radius: 6px;
+            font-family: inherit;
+            font-size: 0.9rem;
+            resize: vertical;
+            min-height: 50px;
+            margin-bottom: 10px;
+        }
+
+        .action-bar { display: flex; gap: 8px; align-items: center; }
+
+        .btn-choice {
+            flex: 1;
+            padding: 10px;
+            border-radius: 6px;
+            border: 1px solid #e2e8f0;
+            background: white;
+            font-weight: 600;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .btn-choice.ok:hover { background: #dcfce7; border-color: #22c55e; color: #166534; }
+        .btn-choice.fail:hover { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
+        
+        .btn-del { 
+            padding: 8px 12px;
+            color: #94a3b8; 
+            border: 1px solid transparent; 
+            background: #f8fafc; 
+            font-size: 0.75rem; 
+            border-radius: 6px;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+
+        .btn-del:hover { 
+            background: #fee2e2; 
+            color: #ef4444; 
+            border-color: #fca5a5;
+        }
+
+        .add-section {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+        }
+
+        .add-section input { flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; }
+
+        footer {
+            margin-top: 2rem;
+            text-align: center;
+            font-size: 0.75rem;
+            color: #94a3b8;
+        }
     </style>
 </head>
-<body class="flex items-start justify-center min-h-screen p-4 pt-4 text-slate-200 font-sans">
+<body>
 
-    <div class="app-container p-6 max-w-sm w-full mx-auto text-center border border-slate-700">
-        <h1 class="text-xl font-black mb-1 text-white tracking-tight">Astronomische Ereignisse</h1> 
-        <div id="gps-status" class="gps-fallback">INITIALISIERUNG...</div>
+    <div class="app-container">
+        <header>
+            <h1>🚗 PKW-Abfahrtskontrolle</h1>
+            <div class="date-display">Prüfdatum: <span id="currentDate"></span></div>
 
-        <div class="flex space-x-2 mb-6">
-            <input type="date" id="date-picker" class="p-2 rounded-xl text-xs w-1/2 outline-none text-white">
-            <input type="time" id="time-picker" class="p-2 rounded-xl text-xs w-1/2 outline-none text-white">
-        </div>
-        
-        <div id="tab-bar" class="flex p-1 bg-slate-800 rounded-xl mb-8">
-            <button data-view="sun" id="btn-sun" class="flex-1 py-2 text-sm transition tab-active-sun">Sonne</button>
-            <button data-view="moon" id="btn-moon" class="flex-1 py-2 text-sm transition tab-inactive">Mond</button>
-            <button data-view="planet" id="btn-planet" class="flex-1 py-2 text-sm transition tab-inactive">Planeten</button>
-        </div>
-
-        <div id="views-container" class="space-y-4">
-            <div id="sun-view" class="space-y-4">
-                <div class="card p-5 shadow-md">
-                    <div class="flex justify-between items-center mb-4">
-                        <div class="text-left">
-                            <span class="block text-[10px] text-emerald-600 uppercase font-black tracking-widest">Aufgang</span>
-                            <span id="sunrise-time" class="text-xl font-bold">--:--</span>
-                        </div>
-                        <div class="text-center px-2 border-x border-slate-200">
-                            <span class="block text-[10px] text-amber-600 uppercase font-black tracking-widest">Höchststand</span>
-                            <span id="sun-transit" class="text-xl font-bold">--:--</span>
-                        </div>
-                        <div class="text-right">
-                            <span class="block text-[10px] text-rose-600 uppercase font-black tracking-widest">Untergang</span>
-                            <span id="sunset-time" class="text-xl font-bold">--:--</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="card p-4 flex items-center space-x-5 shadow-md">
-                    <div class="altitude-meter"><div id="sun-alt-fill" class="altitude-fill bg-amber-500"></div></div>
-                    <div class="text-left">
-                        <span class="text-sm text-amber-600 uppercase font-black">Sonnenstand</span>
-                        <p class="text-sm font-bold text-slate-700" id="sun-azimuth">--</p>
-                        <p class="text-sm text-slate-500 font-medium">Höhe: <span id="sun-altitude" class="text-amber-600 font-bold">--</span></p>
-                    </div>
-                </div>
+            <div class="toolbar">
+                <button class="btn btn-setup" onclick="loadDefaultList()">📋 Standard-Liste laden</button>
+                <button class="btn btn-excel" onclick="exportToExcel()">📥 Excel Export</button>
             </div>
+        </header>
 
-            <div id="moon-view" class="hidden space-y-4">
-                <div class="card p-5 shadow-md">
-                    <div class="flex items-center justify-between">
-                        <div id="moon-phase-emoji" class="text-5xl">🌑</div>
-                        <div class="text-right">
-                            <p id="moon-phase-text" class="text-sm font-black uppercase tracking-tighter text-slate-800"></p>
-                            <div class="mt-2 py-1 px-3 bg-slate-200 rounded-md">
-                                <p class="text-sm text-slate-500 uppercase font-bold">Vollmond am</p>
-                                <p id="next-full-moon" class="text-sm font-bold text-sky-700"></p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                <div class="card p-4 flex items-center space-x-5 shadow-md">
-                    <div class="altitude-meter"><div id="moon-alt-fill" class="altitude-fill bg-slate-400"></div></div>
-                    <div class="text-left">
-                        <span class="text-sm text-slate-500 uppercase font-black">Mondstand</span>
-                        <p class="text-sm font-bold text-slate-700" id="moon-azimuth">--</p>
-                        <p class="text-sm text-slate-500 font-medium">Höhe: <span id="moon-altitude" class="text-slate-700 font-bold">--</span></p>
-                    </div>
-                </div>
-            </div>
-            
-            <div id="planet-view" class="hidden space-y-2"></div>
+        <div id="taskList">
+            <!-- Karten werden hier generiert -->
         </div>
+
+        <div class="add-section">
+            <input type="text" id="taskInput" placeholder="Weiterer Prüfpunkt...">
+            <button class="btn btn-primary" onclick="addTask()">+</button>
+        </div>
+
+        <footer>
+            PKW Prüf-App v2.1 | Daten lokal gespeichert
+        </footer>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/suncalc@1.8.0/suncalc.js"></script>
     <script>
-        // GPS & Koordinaten Logik (aus fotolicht.html)
-        const stdLat = 48.3631, stdLng = 10.8444; // Stadtbergen Standard
-        const savedCoords = localStorage.getItem('sonnemond_coords');
-        const initialCoords = savedCoords ? JSON.parse(savedCoords) : { lat: stdLat, lng: stdLng };
-        
-        let LAT = initialCoords.lat;
-        let LON = initialCoords.lng;
-        let isGpsActive = false;
-        let lastUpdateTimestamp = 0;
+        const taskInput = document.getElementById('taskInput');
+        const taskList = document.getElementById('taskList');
+        const dateSpan = document.getElementById('currentDate');
 
-        let currentView = 'sun';
-        let isUserEditing = false;
-        let autoUpdateActive = true;
+        const today = new Date().toLocaleDateString('de-DE');
+        dateSpan.textContent = today;
 
-        // Hilfsfunktion zur Formatierung
-function toDMS(deg) {
-    const d = Math.floor(Math.abs(deg));
-    const m = Math.floor((Math.abs(deg) - d) * 60);
-    const s = Math.round(((Math.abs(deg) - d) * 60 - m) * 60);
-    return `${deg < 0 ? '-' : ''}${d}°${m}'${s}"`;
-}
+        let tasks = JSON.parse(localStorage.getItem('pkwChecklistTasks')) || [];
 
-function updateStatusDisplay() {
-    const statusDiv = document.getElementById('gps-status');
-    const label = isGpsActive ? "🟢 GPS AKTIV" : (LAT === stdLat ? "🔴 STADTBERGEN" : "🔴 GESPEICHERT");
-    statusDiv.className = isGpsActive ? "gps-active" : "gps-fallback";
-    // Änderung hier: Nutzt nun toDMS für die Standort-Koordinaten
-    statusDiv.innerHTML = `${label} <span style="opacity:0.7; font-size:0.6rem; margin-left:5px;">${toDMS(LAT)} , ${toDMS(LON)}</span>`;
-}
+        function render() {
+            taskList.innerHTML = '';
+            tasks.forEach(task => {
+                const card = document.createElement('div');
+                card.className = 'task-card';
+                
+                let statusClass = 'status-open';
+                let statusText = 'Nicht geprüft';
+                if(task.status === 'ok') { statusClass = 'status-ok'; statusText = 'Mängelfrei'; }
+                if(task.status === 'fail') { statusClass = 'status-fail'; statusText = 'Mangel'; }
 
-function update() {
-    // ... (Logik für Sonne/Mond/Planeten nutzt ebenfalls toDMS wie zuvor beschrieben)
-}
-
-
-        function updateLocation() {
-            if (navigator.geolocation) {
-                navigator.geolocation.getCurrentPosition(
-                    (p) => {
-                        const newLat = p.coords.latitude;
-                        const newLng = p.coords.longitude;
-                        lastUpdateTimestamp = Date.now();
-
-                        // Update nur bei signifikanter Änderung oder erstem GPS-Fix
-                        if (!isGpsActive || Math.abs(newLat - LAT) > 0.005 || Math.abs(newLng - LON) > 0.005) {
-                            LAT = newLat;
-                            LON = newLng;
-                            isGpsActive = true;
-                            localStorage.setItem('sonnemond_coords', JSON.stringify({ lat: LAT, lng: LON }));
-                            updateStatusDisplay();
-                            update(); // Berechnungen mit neuen Koordinaten triggern
-                        }
-                        setTimeout(updateLocation, 15000);
-                    },
-                    (error) => {
-                        isGpsActive = false;
-                        updateStatusDisplay();
-                        setTimeout(updateLocation, 15000);
-                    },
-                    { enableHighAccuracy: true, timeout: 8000, maximumAge: 0 }
-                );
-            }
-        }
-
-        // Astronomische Berechnungen
-        function getCompass(deg) {
-            const s = ["N", "NNO", "NO", "ONO", "O", "OSO", "SO", "SSO", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
-            return s[(Math.floor((deg / 22.5) + 0.5) % 16)];
-        }
-
-        function getNextFullMoon(startDate) {
-    let checkDate = new Date(startDate);
-    let maxFraction = 0;
-    let bestDate = null;
-    let isRising = false;
-
-    // Wir suchen in den nächsten 32 Tagen stündlich
-    for (let i = 0; i < 32 * 24; i++) {
-        let date = new Date(checkDate.getTime() + i * 3600000);
-        let illumination = SunCalc.getMoonIllumination(date);
-        
-        // 1. Wir müssen warten, bis die Beleuchtung anfängt zu steigen
-        // (um nicht ein Maximum in der unmittelbaren Vergangenheit zu fangen)
-        if (i > 0) {
-            let prevDate = new Date(date.getTime() - 3600000);
-            let prevIllum = SunCalc.getMoonIllumination(prevDate);
-            if (illumination.fraction > prevIllum.fraction) {
-                isRising = true;
-            }
-        }
-
-        // 2. Wenn sie steigt, suchen wir den höchsten Punkt
-        if (isRising) {
-            if (illumination.fraction > maxFraction) {
-                maxFraction = illumination.fraction;
-                bestDate = date;
-            } else if (maxFraction > 0.98) { 
-                // Sobald die Beleuchtung wieder sinkt UND wir über 98% waren, 
-                // haben wir den Vollmond gefunden.
-                break;
-            }
-        }
-    }
-
-    if (bestDate) {
-        return bestDate.toLocaleDateString('de-DE') + ' ' + 
-               bestDate.toLocaleTimeString('de-DE', {hour: '2-digit', minute: '2-digit'});
-    }
-    return "Berechne...";
-}
-
-
-        function getPlanetRealPos(id, date) {
-            const d = (date.getTime() / 86400000) - (new Date('2000-01-01T12:00:00Z').getTime() / 86400000);
-            const rev = x => x - Math.floor(x / 360.0) * 360.0;
-            const rad = x => x * Math.PI / 180.0;
-            const deg = x => x * 180.0 / Math.PI;
-
-            const Ms = rev(356.047 + 0.9856002585 * d);
-            const Ls = rev(282.9404 + Ms);
-            const xs = Math.cos(rad(Ls)), ys = Math.sin(rad(Ls));
-
-            let p = id === 'venus'   ? {a:0.7233, e:0.0067, M:rev(48.005+1.60213*d), N:76.68, i:3.39, w:54.89} :
-                    id === 'mars'    ? {a:1.5236, e:0.0934, M:rev(18.602+0.5240*d), N:49.56, i:1.85, w:286.5} :
-                    id === 'jupiter' ? {a:5.2026, e:0.0485, M:rev(19.895+0.083085*d), N:100.45, i:1.303, w:273.87} :
-                                       {a:9.5547, e:0.0555, M:rev(316.967+0.03344*d), N:113.72, i:2.489, w:339.39};
-
-            const E = rad(p.M + deg(p.e * Math.sin(rad(p.M)) * (1 + p.e * Math.cos(rad(p.M)))));
-            const xv = p.a * (Math.cos(E) - p.e), yv = p.a * (Math.sqrt(1 - p.e*p.e) * Math.sin(E));
-            const r = Math.sqrt(xv*xv + yv*yv), lonP = rev(deg(Math.atan2(yv, xv)) + p.w);
-
-            const xh = r * (Math.cos(rad(p.N)) * Math.cos(rad(lonP)) - Math.sin(rad(p.N)) * Math.sin(rad(lonP)) * Math.cos(rad(p.i)));
-            const yh = r * (Math.sin(rad(p.N)) * Math.cos(rad(lonP)) + Math.cos(rad(p.N)) * Math.sin(rad(lonP)) * Math.cos(rad(p.i)));
-            const zh = r * (Math.sin(rad(lonP)) * Math.sin(rad(p.i)));
-
-            const xg = xh + xs, yg = yh + ys, zg = zh;
-            const ecl = rad(23.4393);
-            const xeq = xg, yeq = yg*Math.cos(ecl)-zg*Math.sin(ecl), zeq = yg*Math.sin(ecl)+zg*Math.cos(ecl);
-
-            const ra = rev(deg(Math.atan2(yeq, xeq))), dec = deg(Math.atan2(zeq, Math.sqrt(xeq*xeq + yeq*yeq)));
-            const GMST = rev(280.4606 + 360.9856473 * d);
-            const sidereal = rev(GMST + LON);
-            const ha = rad(rev(sidereal - ra));
-            
-            const alt = deg(Math.asin(Math.sin(rad(LAT)) * Math.sin(rad(dec)) + Math.cos(rad(LAT)) * Math.cos(rad(dec)) * Math.cos(ha)));
-            const az = rev(deg(Math.atan2(Math.sin(ha), Math.cos(ha) * Math.sin(rad(LAT)) - Math.tan(rad(dec)) * Math.cos(rad(LAT)))) + 180);
-            return { azimuth: az, altitude: alt };
-        }
-
-        function update() {
-            const dateVal = document.getElementById('date-picker').value;
-            const timeVal = document.getElementById('time-picker').value;
-            const targetDate = new Date(`${dateVal}T${timeVal}`);
-
-            const sT = SunCalc.getTimes(targetDate, LAT, LON);
-            const sP = SunCalc.getPosition(targetDate, LAT, LON);
-            const mP = SunCalc.getMoonPosition(targetDate, LAT, LON);
-            const mI = SunCalc.getMoonIllumination(targetDate);
-
-            document.getElementById('sunrise-time').textContent = sT.sunrise.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-            document.getElementById('sunset-time').textContent = sT.sunset.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-            document.getElementById('sun-transit').textContent = sT.solarNoon.toLocaleTimeString('de-DE',{hour:'2-digit',minute:'2-digit'});
-            
-            const sAlt = Math.round(sP.altitude * 180/Math.PI);
-            document.getElementById('sun-altitude').textContent = sAlt + '°';
-            document.getElementById('sun-alt-fill').style.height = Math.max(0, sAlt) / 90 * 100 + '%';
-            document.getElementById('sun-azimuth').textContent = getCompass(sP.azimuth * 180/Math.PI + 180) + ' (' + Math.round(sP.azimuth * 180/Math.PI + 180) + '°)';
-
-            const mAlt = Math.round(mP.altitude * 180/Math.PI);
-            document.getElementById('moon-altitude').textContent = mAlt + '°';
-            document.getElementById('moon-alt-fill').style.height = Math.max(0, mAlt) / 90 * 100 + '%';
-            document.getElementById('moon-azimuth').textContent = getCompass(mP.azimuth * 180/Math.PI + 180) + ' (' + Math.round(mP.azimuth * 180/Math.PI + 180) + '°)';
-            
-            document.getElementById('moon-phase-emoji').textContent = ['🌑','🌒','🌓','🌔','🌕','🌖','🌗','🌘'][Math.floor(mI.phase*8)%8];
-            const phaseNames = ['Neumond', 'Zunehmend', 'Erstes Viertel', 'Zunehmend', 'Vollmond', 'Abnehmend', 'Letztes Viertel', 'Abnehmend'];
-            document.getElementById('moon-phase-text').textContent = phaseNames[Math.floor(mI.phase*8)%8];
-            document.getElementById('next-full-moon').textContent = getNextFullMoon(targetDate);
-
-            if(currentView === 'planet') {
-                const ps = [
-                    {id:'venus', n:'Venus', e:'♀️', c:'#0891b2'}, 
-                    {id:'mars', n:'Mars', e:'♂️', c:'#dc2626'}, 
-                    {id:'jupiter', n:'Jupiter', e:'♃', c:'#7c3aed'},
-                    {id:'saturn', n:'Saturn', e:'♄', c:'#b45309'}
-                ];
-                document.getElementById('planet-view').innerHTML = ps.map(p => {
-                    const pos = getPlanetRealPos(p.id, targetDate);
-                    const h = Math.round(pos.altitude);
-                    return `<div class="card p-3 flex items-center space-x-5 shadow-sm" style="border-left: 6px solid ${p.c}">
-                        <div class="altitude-meter"><div class="altitude-fill" style="height: ${Math.max(0, h)/90*100}%; background-color: ${p.c}"></div></div>
-                        <div class="text-left leading-tight">
-                            <span class="text-sm uppercase font-black" style="color: ${p.c}">${p.n} ${p.e}</span>
-                            <p class="text-sm font-bold text-slate-700">${getCompass(pos.azimuth)} (${Math.round(pos.azimuth)}°)</p>
-                            <p class="text-sm text-slate-500 font-medium">Höhe: <span style="color: ${p.c}" class="font-bold">${h}°</span></p>
-                        </div>
-                    </div>`;
-                }).join('');
-            }
-        }
-
-        function tick() {
-            if (isUserEditing || !autoUpdateActive) return;
-            const now = new Date();
-            const dateInput = document.getElementById('date-picker');
-            const timeInput = document.getElementById('time-picker');
-            const todayStr = now.toLocaleDateString('en-CA');
-            const currentTimeStr = now.toTimeString().slice(0,5);
-            let changed = false;
-            if (dateInput.value !== todayStr) { dateInput.value = todayStr; changed = true; }
-            if (timeInput.value !== currentTimeStr) { timeInput.value = currentTimeStr; changed = true; }
-            if (changed) update();
-        }
-
-        // Event Listener & Initialisierung
-        const datePicker = document.getElementById('date-picker');
-        const timePicker = document.getElementById('time-picker');
-
-        [datePicker, timePicker].forEach(picker => {
-            picker.addEventListener('focus', () => { isUserEditing = true; });
-            picker.addEventListener('blur', () => { isUserEditing = false; });
-            picker.addEventListener('input', () => { autoUpdateActive = false; update(); });
-        });
-
-        document.querySelectorAll('[data-view]').forEach(t => t.addEventListener('click', e => {
-            currentView = e.target.dataset.view;
-            const btns = { sun: 'btn-sun', moon: 'btn-moon', planet: 'btn-planet' };
-            Object.keys(btns).forEach(key => {
-                document.getElementById(btns[key]).className = `flex-1 py-2 text-sm transition ${key === currentView ? 'tab-active-' + key : 'tab-inactive'}`;
+                card.innerHTML = `
+                    <div class="task-header">
+                        <span class="task-title">${task.title}</span>
+                        <span class="status-badge ${statusClass}">${statusText}</span>
+                    </div>
+                    <textarea placeholder="Hinweise, Mängel oder Messwerte..." 
+                              onchange="updateResult(${task.id}, this.value)">${task.result || ''}</textarea>
+                    <div class="action-bar">
+                        <button class="btn-choice ok" onclick="setStatus(${task.id}, 'ok')">✓ OK</button>
+                        <button class="btn-choice fail" onclick="setStatus(${task.id}, 'fail')">✗ Mangel</button>
+                        <button class="btn-del" onclick="deleteTask(${task.id})" title="Punkt entfernen">Entfernen</button>
+                    </div>
+                `;
+                taskList.appendChild(card);
             });
-            ['sun-view','moon-view','planet-view'].forEach(v => document.getElementById(v).classList.toggle('hidden', v !== currentView + '-view'));
-            update();
-        }));
+            localStorage.setItem('pkwChecklistTasks', JSON.stringify(tasks));
+        }
 
-        const initialNow = new Date();
-        document.getElementById('date-picker').value = initialNow.toLocaleDateString('en-CA');
-        document.getElementById('time-picker').value = initialNow.toTimeString().slice(0,5);
-        
-        updateStatusDisplay();
-        update();
-        updateLocation(); // GPS starten
-        setInterval(tick, 1000);
+        function loadDefaultList() {
+            if(tasks.length > 0 && !confirm("Aktuelle Liste durch Standard-Liste ersetzen? Alle bisherigen Eingaben gehen verloren.")) return;
+            
+            const defaults = [
+                "Reifen: Profiltiefe kontrolliert",
+                "Reifen: Reifendruck (Sichtprüfung/Messung)",
+                "Beleuchtung: Scheinwerfer & Fernlicht",
+                "Beleuchtung: Blinker & Warnblinker",
+                "Beleuchtung: Bremslicht & Rückleuchten",
+                "Motoröl: Füllstand kontrolliert",
+                "Kühlwasser: Füllstand kontrolliert",
+                "Scheibenwaschwasser: Füllstand",
+                "Bremsflüssigkeit: Stand kontrolliert",
+                "Bremsanlage: Funktionsprüfung",
+                "Kraftstoffvorrat: Ausreichend für Fahrt",
+                "Ladungssicherung & Gurte",
+                "Innenraum & Scheiben sauber",
+                "Zulassungsbescheinigung Teil I vorhanden",
+                "Tankkarte vorhanden",
+                "Zubehör: Verbandskasten (Ablaufdatum prüfen)",
+                "Zubehör: Warnweste(n) vorhanden",
+                "Zubehör: Warndreieck vorhanden"
+            ];
+            
+            tasks = defaults.map((item, index) => ({
+                id: Date.now() + index,
+                title: item,
+                status: 'open',
+                result: ''
+            }));
+            render();
+        }
+
+        function addTask() {
+            if(!taskInput.value.trim()) return;
+            tasks.push({
+                id: Date.now(),
+                title: taskInput.value,
+                status: 'open',
+                result: ''
+            });
+            taskInput.value = '';
+            render();
+        }
+
+        function exportToExcel() {
+            if (tasks.length === 0) { alert("Keine Daten vorhanden."); return; }
+
+            const excelData = tasks.map(t => ({
+                "Datum": today,
+                "Prüfpunkt": t.title,
+                "Status": t.status === 'ok' ? 'Mängelfrei' : (t.status === 'fail' ? 'Mangel' : 'Offen'),
+                "Bemerkung": t.result
+            }));
+
+            const ws = XLSX.utils.json_to_sheet(excelData);
+            const wb = XLSX.utils.book_new();
+            XLSX.utils.book_append_sheet(wb, ws, "PKW-Check");
+            const fileName = `PKW_Check_${new Date().toISOString().split('T')[0]}.xlsx`;
+            XLSX.writeFile(wb, fileName);
+        }
+
+        window.updateResult = (id, text) => {
+            const task = tasks.find(t => t.id === id);
+            if(task) task.result = text;
+            localStorage.setItem('pkwChecklistTasks', JSON.stringify(tasks));
+        };
+
+        window.setStatus = (id, status) => {
+            const task = tasks.find(t => t.id === id);
+            if(task) task.status = status;
+            render();
+        };
+
+        window.deleteTask = (id) => {
+            tasks = tasks.filter(t => t.id !== id);
+            render();
+        };
+
+        render();
     </script>
 </body>
 </html>
