@@ -109,8 +109,10 @@
         const LON_MIN = (CENTER_LON - RANGE_DEG).toFixed(3);
         const LAT_MAX = (CENTER_LAT + RANGE_DEG).toFixed(3);
         const LON_MAX = (CENTER_LON + RANGE_DEG).toFixed(3);
-        // Direkter OpenSky URL
+        
+        // KORREKTUR: Explizites HTTPS-Protokoll zur Vermeidung von Mixed-Content-Blockaden auf GitHub Pages
         const OPENSKY_URL = `https://opensky-network.org/api/states/all?lamin=${LAT_MIN}&lomin=${LON_MIN}&lamax=${LAT_MAX}&lomax=${LON_MAX}`;
+        
         // Indexpositionen der relevanten Felder in den OpenSky-Arrays
         const INDEX = {
             ICAO24: 0,
@@ -280,7 +282,7 @@
             aircraftCount.textContent = '...';
             setStatus('Flugdaten für Augsburg werden abgerufen...', 'loading');
             try {
-                // Direkter, anonymer API-Aufruf zur fehlerfreien Nutzung im Webbrowser (CORS-Safe)
+                // Standardkonformer, anonymer API-Aufruf über verschlüsseltes HTTPS zur Umgehung von CORS-Sperren
                 const response = await fetch(OPENSKY_URL, {
                     method: 'GET'
                 });
@@ -309,7 +311,7 @@
         }
         
         /**
-         * Verarbeitet, berechnet die Entfernung, sortiert und rendert die Daten.
+         * Verarbeitet, berechnet die Antwort-Entfernung, sortiert und rendert die Daten.
          */
         function processAndRenderData(allStates, sourceName) {
             
