@@ -110,7 +110,7 @@
         const LAT_MAX = (CENTER_LAT + RANGE_DEG).toFixed(3);
         const LON_MAX = (CENTER_LON + RANGE_DEG).toFixed(3);
         
-        // ANPASSUNG: Nutzung eines CORS-Proxys, um quellübergreifende Blockaden im Browser zu verhindern
+        // KORREKTUR: Nutzung eines CORS-Proxys, um quellübergreifende Blockaden im Browser zu verhindern
         const OPENSKY_URL = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://opensky-network.org/api/states/all?lamin=${LAT_MIN}&lomin=${LON_MIN}&lamax=${LAT_MAX}&lomax=${LON_MAX}`)}`;
         
         // Indexpositionen der relevanten Felder in den OpenSky-Arrays
@@ -282,7 +282,8 @@
             aircraftCount.textContent = '...';
             setStatus('Flugdaten für Augsburg werden abgerufen...', 'loading');
             try {
-                const response = await fetch(OPENSKY_URL);
+                // ANPASSUNG: cache: 'no-store' zwingt den Browser (und Service Worker), die Live-Daten direkt aus dem Netz anzufordern
+                const response = await fetch(OPENSKY_URL, { cache: 'no-store' });
                 if (!response.ok) {
                     throw new Error(`API Fehler: HTTP Status ${response.status}.`);
                 }
@@ -299,7 +300,9 @@
                 processAndRenderData(allStates, 'OpenSky Network');
             } catch (error) {
                 console.error("Kritischer Netzwerkfehler:", error);
-                setStatus(`Kritischer Fehler: Abruf der OpenSky-Daten fehlgeschlagen. (${error.message}).`, 'error');
+                
+                // ANPASSUNG: Ergänzung eines Hinweises zur Behebung festsitzender Service Worker im Browser
+                setStatus(`Kritischer Fehler: Abruf fehlgeschlagen (${error.message}). Falls der Fehler bleibt, bitte einmalig Strg+F5 drücken oder Service Worker in den Entwicklertools (F12 -> Application) deregistrieren.`, 'error');
                 aircraftCount.textContent = 'Fehler';
             } finally {
                 toggleLoading(false);
