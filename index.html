@@ -109,11 +109,8 @@
         const LON_MIN = (CENTER_LON - RANGE_DEG).toFixed(3);
         const LAT_MAX = (CENTER_LAT + RANGE_DEG).toFixed(3);
         const LON_MAX = (CENTER_LON + RANGE_DEG).toFixed(3);
-        
-        // KORREKTUR: Einbindung eines zuverlässigen CORS-Proxys zur Vermeidung von NetworkErrors im Browser-Frontend
-        const BASE_OPENSKY_URL = `https://opensky-network.org/api/states/all?lamin=${LAT_MIN}&lomin=${LON_MIN}&lamax=${LAT_MAX}&lomax=${LON_MAX}`;
-        const OPENSKY_URL = `https://api.allorigins.win/get?url=${encodeURIComponent(BASE_OPENSKY_URL)}`;
-        
+        // Direkter OpenSky URL
+        const OPENSKY_URL = `https://opensky-network.org/api/states/all?lamin=${LAT_MIN}&lomin=${LON_MIN}&lamax=${LAT_MAX}&lomax=${LON_MAX}`;
         // Indexpositionen der relevanten Felder in den OpenSky-Arrays
         const INDEX = {
             ICAO24: 0,
@@ -283,7 +280,7 @@
             aircraftCount.textContent = '...';
             setStatus('Flugdaten für Augsburg werden abgerufen...', 'loading');
             try {
-                // Aufruf über die allorigins-Schnittstelle zur Behebung des CORS-Sicherheitsproblems
+                // Direkter, anonymer API-Aufruf zur fehlerfreien Nutzung im Webbrowser (CORS-Safe)
                 const response = await fetch(OPENSKY_URL, {
                     method: 'GET'
                 });
@@ -292,9 +289,7 @@
                     throw new Error(`API Fehler: HTTP Status ${response.status}.`);
                 }
 
-                const wrapperData = await response.json();
-                // Dekapselung der Antwortdaten aus dem Proxy-Objekt
-                const data = typeof wrapperData.contents === 'string' ? JSON.parse(wrapperData.contents) : wrapperData.contents;
+                const data = await response.json();
                 let allStates = data.states || [];
 
                 if (allStates.length === 0) {
@@ -303,7 +298,7 @@
                     return;
                 }
                 
-                processAndRenderData(allStates, 'OpenSky Network via Proxy');
+                processAndRenderData(allStates, 'OpenSky Network');
             } catch (error) {
                 console.error("Kritischer Netzwerkfehler:", error);
                 setStatus(`Kritischer Fehler: Abruf der OpenSky-Daten fehlgeschlagen. (${error.message}).`, 'error');
@@ -314,7 +309,7 @@
         }
         
         /**
-         * Verarbeitet, berechnet die Antwort-Entfernung, sortiert und rendert die Daten.
+         * Verarbeitet, berechnet die Entfernung, sortiert und rendert die Daten.
          */
         function processAndRenderData(allStates, sourceName) {
             
