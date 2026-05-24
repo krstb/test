@@ -280,15 +280,9 @@
             aircraftCount.textContent = '...';
             setStatus('Flugdaten für Augsburg werden abgerufen...', 'loading');
             try {
-                // Konfiguration der HTTP-Basic-Auth Header für die Client-ID
-                const clientId = "roko2703 -api-client";
-                const headers = new Headers();
-                // Basic Auth verlangt 'username:password'. Da kein Passwort vorliegt, bleibt es leer.
-                headers.set('Authorization', 'Basic ' + btoa(clientId + ':'));
-
+                // Direkter, anonymer API-Aufruf zur fehlerfreien Nutzung im Webbrowser (CORS-Safe)
                 const response = await fetch(OPENSKY_URL, {
-                    method: 'GET',
-                    headers: headers
+                    method: 'GET'
                 });
 
                 if (!response.ok) {
@@ -315,7 +309,7 @@
         }
         
         /**
-         * Verarbeitet, berechnet die Antwort-Entfernung, sortiert und rendert die Daten.
+         * Verarbeitet, berechnet die Entfernung, sortiert und rendert die Daten.
          */
         function processAndRenderData(allStates, sourceName) {
             
