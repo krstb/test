@@ -12,7 +12,7 @@
     <meta name="color-scheme" content="light">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black">
-    <link class="apple-touch-icon" href="icon-192.png">
+    <link rel="apple-touch-icon" href="icon-192.png">
     
     <script>
       // Service Worker Registrierung
@@ -26,8 +26,9 @@
     
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        /* Fix für PWA-Ränder */
-        html {background-color: #000000 !important;overscroll-behavior-y: none;}
+
+/* Fix für PWA-Ränder */
+    html {background-color: #000000 !important;overscroll-behavior-y: none;}
         
         /* Setze die Standard-Schriftart */
         body {
@@ -39,8 +40,10 @@
         }
         /* Definiere einen Lade-Spin-Effekt */
         @keyframes spin {
-            from { transform: rotate(0deg); }
-            to { transform: rotate(360deg); }
+            from { transform: rotate(0deg);
+            }
+            to { transform: rotate(360deg);
+            }
         }
         .animate-spin-custom {
             animation: spin 1s linear infinite;
@@ -52,10 +55,12 @@
                 extend: {
                     colors: {
                         'primary-blue': '#4c78a8', 
+     
                         'secondary-gray': '#e5e7eb',
                         'in-air': '#10b981', /* Emerald Green */
                         'on-ground': '#6b7280', /* Gray */
                     }
+   
                 }
             }
         }
@@ -67,6 +72,7 @@
         <header class="text-center py-6 bg-primary-blue text-white rounded-xl shadow-lg mb-6">
             <h1 class="text-3xl font-extrabold tracking-tight">Flugzeuge im Großraum Augsburg</h1>
             <p class="text-sm mt-1 opacity-90">Sortiert nach Entfernung vom Zentrum</p>
+ 
         </header>
 
         <div id="status-message" class="text-center p-3 mb-4 rounded-lg text-sm font-medium transition duration-300">
@@ -80,11 +86,13 @@
             </button>
         </div>
 
-        <ul id="aircraft-list" class="space-y-3">
+  
+       <ul id="aircraft-list" class="space-y-3">
             </ul>
 
         <footer class="text-center text-gray-500 text-xs mt-8 p-4">
-            <p>Die Daten werden direkt von OpenSky Network abgerufen. Sortierung: Entfernung (Nah zuerst).</p>
+            <p>Die Daten werden direkt von OpenSky Network abgerufen.
+            Sortierung: Entfernung (Nah zuerst).</p>
         </footer>
     </div>
 
@@ -99,13 +107,10 @@
         // Bounding Box Parameter (lamin, lomin, lamax, lomax)
         const LAT_MIN = (CENTER_LAT - RANGE_DEG).toFixed(3);
         const LON_MIN = (CENTER_LON - RANGE_DEG).toFixed(3);
-        
-        // KRITISCHE KORREKTUR: Korrekte Zuweisung der Konstante ohne unzulässige logische Operatoren auf der linken Seite
         const LAT_MAX = (CENTER_LAT + RANGE_DEG).toFixed(3);
         const LON_MAX = (CENTER_LON + RANGE_DEG).toFixed(3);
-        
-        const OPENSKY_RAW_PATH = `https://opensky-network.org/api/states/all?lamin=${LAT_MIN}&lomin=${LON_MIN}&lamax=${LAT_MAX}&lomax=${LON_MAX}`;
-        
+        // Direkter OpenSky URL
+        const OPENSKY_URL = `https://opensky-network.org/api/states/all?lamin=${LAT_MIN}&lomin=${LON_MIN}&lamax=${LAT_MAX}&lomax=${LON_MAX}`;
         // Indexpositionen der relevanten Felder in den OpenSky-Arrays
         const INDEX = {
             ICAO24: 0,
@@ -113,6 +118,7 @@
             COUNTRY: 2,
             LAST_CONTACT: 4, // Letzter Kontakt (Unix Time in Sekunden)
             LONGITUDE: 5,
+          
             LATITUDE: 6,
             ALTITUDE: 7, // Barometrische Höhe (Meter)
             ON_GROUND: 8, // Am Boden (true/false)
@@ -140,7 +146,8 @@
          * Berechnet die Entfernung zwischen zwei Koordinaten in Kilometern (Haversine-Formel).
          */
         function calculateDistanceKm(lat1, lon1, lat2, lon2) {
-            const R = 6371; // Radius der Erde in Kilometern
+            const R = 6371;
+            // Radius der Erde in Kilometern
             
             const dLat = toRad(lat2 - lat1);
             const dLon = toRad(lon2 - lon1);
@@ -151,7 +158,8 @@
                       Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
             const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
             
-            return R * c; // Entfernung in Kilometern
+            return R * c;
+            // Entfernung in Kilometern
         }
 
         // --- UI Hilfsfunktionen ---
@@ -202,11 +210,14 @@
             const isStale = diffSeconds > 60;
             let text;
 
-            if (diffSeconds < 1) { text = 'Jetzt'; } 
-            else if (diffSeconds < 60) { text = `vor ${diffSeconds} Sek.`; } 
+            if (diffSeconds < 1) { text = 'Jetzt';
+            } 
+            else if (diffSeconds < 60) { text = `vor ${diffSeconds} Sek.`;
+            } 
             else {
                 const minutes = Math.floor(diffSeconds / 60);
-                if (minutes < 60) { text = `vor ${minutes} Min.`; } 
+                if (minutes < 60) { text = `vor ${minutes} Min.`;
+                } 
                 else {
                     const hours = Math.floor(minutes / 60);
                     text = `vor ${hours} Std.`;
@@ -228,10 +239,12 @@
                 
                 document.querySelectorAll('.aircraft-card').forEach(card => {
                     const lastContactTimestamp = parseInt(card.getAttribute('data-timestamp'));
+      
                     const ageElement = card.querySelector('.time-display');
                     
                     if (ageElement && !isNaN(lastContactTimestamp) && lastContactTimestamp > 0) {
                         const diffSeconds = nowUnix - lastContactTimestamp;
+      
                         const { text, isStale } = formatAge(diffSeconds);
 
                         ageElement.textContent = text;
@@ -240,10 +253,13 @@
                         if (timeBox) {
                             timeBox.classList.remove('bg-blue-100', 'text-blue-700', 'bg-red-100', 'text-red-700');
                             
+              
                             if (isStale) {
+                                // Daten sind älter als 60 Sekunden -> Warnung
                                 timeBox.classList.add('bg-red-100', 'text-red-700');
                                 card.classList.add('opacity-50'); 
                             } else {
+                                // Daten sind aktuell
                                 timeBox.classList.add('bg-blue-100', 'text-blue-700');
                                 card.classList.remove('opacity-50');
                             }
@@ -256,7 +272,7 @@
         }
 
         /**
-         * Ruft Flugzeugdaten ab, mit robuster Proxy-Ausfallsicherung und JSON-Prüfung.
+         * Ruft Flugzeugdaten direkt vom OpenSky-Endpunkt ab.
          */
         async function fetchAircraftData() {
             toggleLoading(true);
@@ -264,11 +280,11 @@
             aircraftCount.textContent = '...';
             setStatus('Flugdaten für Augsburg werden abgerufen...', 'loading');
             
-            // Ausfallsichere Kette öffentlich zugänglicher Proxys
+            // Definiere ausfallsichere Proxys und erzwinge cache: 'no-store' gegen veraltete Service-Worker-Caches
             const proxies = [
-                `https://api.allorigins.win/raw?url=${encodeURIComponent(OPENSKY_RAW_PATH)}`,
-                `https://thingproxy.freeboard.io/fetch/${OPENSKY_RAW_PATH}`,
-                `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(OPENSKY_RAW_PATH)}`
+                `https://api.allorigins.win/raw?url=${encodeURIComponent(OPENSKY_URL)}`,
+                `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(OPENSKY_URL)}`,
+                `https://thingproxy.freeboard.io/fetch/${OPENSKY_URL}`
             ];
 
             let data = null;
@@ -276,12 +292,13 @@
 
             for (let i = 0; i < proxies.length; i++) {
                 try {
+                    // cache: 'no-store' zwingt den Service Worker, die Anfrage live auszuführen
                     const response = await fetch(proxies[i], { cache: 'no-store' });
                     if (!response.ok) continue;
 
                     const responseText = await response.text();
 
-                    // String auf valide JSON-Struktur untersuchen
+                    // Prüfen, ob die Antwort reiner Text (wie "Too many requests") oder valides JSON ist
                     if (!responseText.trim().startsWith('{') && !responseText.trim().startsWith('[')) {
                         console.warn(`Proxy ${i} lieferte kein gültiges JSON.`);
                         continue;
@@ -290,53 +307,61 @@
                     data = JSON.parse(responseText);
                     successSource = `Verbindung ${i + 1}`;
                     break; 
-                } catch (e) {
-                    console.warn(`Fehler bei Route ${i}:`, e.message);
+                } catch (error) {
+                    console.warn(`Fehler bei Route ${i}:`, error.message);
                 }
             }
 
-            if (!data) {
-                setStatus('Hinweis: Temporäre API-Überlastung (Rate-Limit/429 von OpenSky). Bitte warten Sie 1–2 Minuten und klicken Sie erneut auf "Daten aktualisieren".', 'info');
-                aircraftCount.textContent = 'Bereit';
-                toggleLoading(false);
-                return;
-            }
+            try {
+                if (!data) {
+                    throw new Error("Temporäre Überlastung der Gegenstelle (Rate-Limit/429 von OpenSky). Bitte warten Sie 1-2 Minuten.");
+                }
 
-            let allStates = data.states || [];
-            if (allStates.length === 0) {
-                setStatus(`Keine Flugobjekte in der Suchzone gefunden.`, 'info');
-                aircraftCount.textContent = '0';
+                let allStates = data.states || [];
+
+                if (allStates.length === 0) {
+                    setStatus(`Keine Flugobjekte in der Suchzone gefunden.`, 'info');
+                    aircraftCount.textContent = '0';
+                    return;
+                }
+                
+                processAndRenderData(allStates, successSource);
+            } catch (error) {
+                console.error("Kritischer Netzwerkfehler:", error);
+                setStatus(`Kritischer Fehler: Abruf der OpenSky-Daten fehlgeschlagen. (${error.message}).`, 'error');
+                aircraftCount.textContent = 'Fehler';
+            } finally {
                 toggleLoading(false);
-                return;
             }
-            
-            processAndRenderData(allStates, successSource);
-            toggleLoading(false);
         }
         
         /**
          * Verarbeitet, berechnet die Entfernung, sortiert und rendert die Daten.
          */
         function processAndRenderData(allStates, sourceName) {
+            
+            // 1. Daten filtern, nur mit gültigen Koordinaten und Entfernung berechnen
             const processedStates = allStates
                 .filter(state => state[INDEX.LATITUDE] && state[INDEX.LONGITUDE])
                 .map(state => {
+  
                     const lat = state[INDEX.LATITUDE];
                     const lon = state[INDEX.LONGITUDE];
                     const distanceKm = calculateDistanceKm(CENTER_LAT, CENTER_LON, lat, lon);
                     
+          
                     return {
                         data: state,
                         distanceKm: distanceKm
                     };
                 });
-
+            // 2. Sortieren nach Entfernung (Nah zuerst)
             processedStates.sort((a, b) => a.distanceKm - b.distanceKm);
             renderAircraftList(processedStates);
             
             startRealTimeAgeUpdate();
             
-            setStatus(`Erfolgreich ${processedStates.length} Flugobjekte geladen (${sourceName}).`, 'success');
+            setStatus(`Erfolgreich ${processedStates.length} Flugobjekte geladen. Quelle: ${sourceName}. Sortierung: Entfernung.`, 'success');
             aircraftCount.textContent = processedStates.length;
         }
 
@@ -352,52 +377,80 @@
                 const callsign = state[INDEX.CALLSIGN] ? state[INDEX.CALLSIGN].trim() : 'N/A (Registrierung)';
                 const icao24 = state[INDEX.ICAO24];
                 const country = state[INDEX.COUNTRY] || 'Unbekannt';
+                // Velocity: m/s zu km/h
                 const velocity = state[INDEX.VELOCITY] ? (state[INDEX.VELOCITY] * 3.6).toFixed(0) : 'N/A'; 
+                // Altitude: Meter zu Fuß
                 const altitude = state[INDEX.ALTITUDE] ? (state[INDEX.ALTITUDE] * 3.28084).toFixed(0) : 'N/A'; 
+    
+                // Track (Flugrichtung)
                 const track = state[INDEX.TRACK] ? state[INDEX.TRACK].toFixed(0) + '°' : 'N/A';
+                
                 const lastContactTime = state[INDEX.LAST_CONTACT];
+                
+          
                 const onGround = state[INDEX.ON_GROUND] || false;
                 
-                const statusLabel = onGround ? 'Am Boden' : 'In der Luft';
+                // Status Label und Farbe definieren
+                const statusLabel = onGround ?
+                'Am Boden' : 'In der Luft';
                 const statusColor = onGround ? 'text-on-ground bg-gray-100' : 'text-in-air bg-green-100';
                 const initialAge = lastContactTime ? formatAge(Math.floor(Date.now() / 1000) - lastContactTime).text : 'N/A';
 
                 const listItem = document.createElement('li');
                 listItem.className = 'bg-white p-4 rounded-xl shadow-md border border-gray-200 transition duration-150 hover:shadow-lg aircraft-card';
+                // Speichere den Unix-Timestamp im data-Attribut
                 listItem.setAttribute('data-timestamp', lastContactTime || '0');
                 listItem.innerHTML = `
                     <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
                         <div class="mb-2 sm:mb-0">
                             <p class="text-lg font-bold text-primary-blue">${callsign}</p>
-                            <p class="text-xs text-gray-500">ICAO24: ${icao24} | Herkunft: ${country}</p>
+               
+                            <p class="text-xs text-gray-500">ICAO24: ${icao24} |
+                            Herkunft: ${country}</p>
                         </div>
+                        
                         <div class="text-right grid grid-cols-2 gap-4 text-sm sm:flex sm:space-x-4">
+                    
+         
                             <div class="flex flex-col text-center bg-yellow-100 px-2 py-1 rounded-md order-first sm:order-none">
-                                <span class="font-bold text-yellow-700">${distance.toFixed(1)} km</span>
+                    
+                            <span class="font-bold text-yellow-700">${distance.toFixed(1)} km</span>
                                 <span class="text-xs text-yellow-500">Entfernung</span>
                             </div>
+
+                       
                             <div class="flex flex-col text-center ${statusColor} px-2 py-1 rounded-md">
                                 <span class="font-semibold">${statusLabel}</span>
+                        
                                 <span class="text-xs opacity-75">Status</span>
                             </div>
+                            
                             <div class="flex flex-col text-center bg-blue-100 px-2 py-1 rounded-md time-box">
                                 <span class="font-semibold text-blue-700 time-display">${initialAge}</span>
+                                
                                 <span class="text-xs text-blue-500">Position vor</span>
                             </div>
+
                             <div class="flex flex-col text-center bg-secondary-gray px-2 py-1 rounded-md">
-                                <span class="font-semibold text-gray-800">${track}</span>
+                                <span class="font-semibold 
+                                text-gray-800">${track}</span>
                                 <span class="text-xs text-gray-500">Richtung</span>
                             </div>
+                            
+          
                             <div class="flex flex-col text-center bg-secondary-gray px-2 py-1 rounded-md">
                                 <span class="font-semibold text-gray-800">${velocity} km/h</span>
                                 <span class="text-xs text-gray-500">Geschw.</span>
+      
                             </div>
                             <div class="flex flex-col text-center bg-secondary-gray px-2 py-1 rounded-md">
                                 <span class="font-semibold text-gray-800">${altitude} ft</span>
+        
                                 <span class="text-xs text-gray-500">Höhe</span>
                             </div>
                         </div>
                     </div>
+  
                 `;
                 listContainer.appendChild(listItem);
             });
@@ -407,7 +460,10 @@
         window.onload = function() {
             setStatus(`Initialisiere OpenSky Tracker für den Großraum Augsburg. Sortiert nach Entfernung.`, 'info');
             fetchAircraftData();
+
+            // Setze einen Intervall für die automatische Aktualisierung der Daten (alle 30 Sekunden)
             setInterval(fetchAircraftData, 30000);
+            // Starte den 1-Sekunden-Timer für die Zeitanzeige
             startRealTimeAgeUpdate();
         };
     </script>
