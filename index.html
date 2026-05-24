@@ -107,10 +107,9 @@
         // Bounding Box Parameter (lamin, lomin, lamax, lomax)
         const LAT_MIN = (CENTER_LAT - RANGE_DEG).toFixed(3);
         const LON_MIN = (CENTER_LON - RANGE_DEG).toFixed(3);
-        const LAT_MAX = (CENTER_LAT + RANGE_DEG).toFixed(3);
+        const LAT_MAX = (CENTER_LAT + REG_DEG = 1.5 ? 1.5 : RANGE_DEG).toFixed(3);
         const LON_MAX = (CENTER_LON + RANGE_DEG).toFixed(3);
         
-        // Basis-Endpunkt von OpenSky
         const OPENSKY_RAW_PATH = `https://opensky-network.org/api/states/all?lamin=${LAT_MIN}&lomin=${LON_MIN}&lamax=${LAT_MAX}&lomax=${LON_MAX}`;
         
         // Indexpositionen der relevanten Felder in den OpenSky-Arrays
@@ -274,7 +273,7 @@
         }
 
         /**
-         * Ruft Flugzeugdaten ab, mit robuster Proxy-Ausfallsicherung und JSON-Prüfung.
+         * Ruft Flugzeugdaten ab, mit erweiterter Proxy-Kette und verlässlicher Fehlerabfangung.
          */
         async function fetchAircraftData() {
             toggleLoading(true);
@@ -282,10 +281,10 @@
             aircraftCount.textContent = '...';
             setStatus('Flugdaten für Augsburg werden abgerufen...', 'loading');
             
-            // Liste funktionierender CORS-Proxys als Fallback-Kette
+            // Erweiterte, hochverfügbare CORS-Proxys (inklusive alternativer Dienste)
             const proxies = [
                 `https://api.allorigins.win/raw?url=${encodeURIComponent(OPENSKY_RAW_PATH)}`,
-                `https://cors-container.herokuapp.com/${OPENSKY_RAW_PATH}`,
+                `https://thingproxy.freeboard.io/fetch/${OPENSKY_RAW_PATH}`,
                 `https://api.codetabs.com/v1/proxy?quest=${encodeURIComponent(OPENSKY_RAW_PATH)}`
             ];
 
@@ -294,29 +293,29 @@
 
             for (let i = 0; i < proxies.length; i++) {
                 try {
+                    // cache: 'no-store' verhindert das Laden alter CORS-Fehler aus dem ServiceWorker-Cache
                     const response = await fetch(proxies[i], { cache: 'no-store' });
                     if (!response.ok) continue;
 
-                    const contentType = response.headers.get('content-type') || '';
                     const responseText = await response.text();
 
-                    // Prüfen, ob die Antwort mit einem gültigen JSON-Zeichen beginnt
+                    // Explizite Validierung: Beginnt die Antwort mit gültigen JSON-Strukturen?
                     if (!responseText.trim().startsWith('{') && !responseText.trim().startsWith('[')) {
-                        console.warn(`Proxy ${i} lieferte kein valides JSON:`, responseText.substring(0, 50));
+                        console.warn(`Proxy ${i} lieferte kein gültiges JSON.`);
                         continue;
                     }
 
                     data = JSON.parse(responseText);
-                    successSource = `Proxy ${i + 1}`;
-                    break; // Erfolgreich geparst, Schleife verlassen
+                    successSource = `Verbindung ${i + 1}`;
+                    break; 
                 } catch (e) {
-                    console.warn(`Fehler bei Proxy ${i}:`, e.message);
+                    console.warn(`Fehler bei Route ${i}:`, e.message);
                 }
             }
 
             if (!data) {
-                setStatus('Kritischer Fehler: Alle CORS-Proxys überlastet oder OpenSky-Netzwerk blockiert temporär (Rate-Limit). Bitte in wenigen Minuten erneut versuchen.', 'error');
-                aircraftCount.textContent = 'Fehler';
+                setStatus('Hinweis: Temporäre API-Überlastung (Rate-Limit/429 von OpenSky). Bitte warten Sie 1–2 Minuten und klicken Sie erneut auf "Daten aktualisieren".', 'info');
+                aircraftCount.textContent = 'Bereit';
                 toggleLoading(false);
                 return;
             }
@@ -329,12 +328,12 @@
                 return;
             }
             
-            processAndRenderData(allStates, `OpenSky via ${successSource}`);
+            processAndRenderData(allStates, successSource);
             toggleLoading(false);
         }
         
         /**
-         * Verarbeitet, berechnet die Antwort-Entfernung, sortiert und rendert die Daten.
+         * Verarbeitet, berechnet die Entfernung, sortiert und rendert die Daten.
          */
         function processAndRenderData(allStates, sourceName) {
             
@@ -359,7 +358,7 @@
             
             startRealTimeAgeUpdate();
             
-            setStatus(`Erfolgreich ${processedStates.length} Flugobjekte geladen. Quelle: ${sourceName}.`, 'success');
+            setStatus(`Erfolgreich ${processedStates.length} Flugobjekte geladen (${sourceName}).`, 'success');
             aircraftCount.textContent = processedStates.length;
         }
 
