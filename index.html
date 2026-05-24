@@ -3,318 +3,445 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>PKW Abfahrtskontrolle</title>
-    <!-- Einbindung der SheetJS Bibliothek für den Excel-Export -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <title>Flugverkehr Test</title>
+    
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icon-192.png"> 
+    <link rel="icon" type="image/svg+xml" href="favicon.svg">
+    <meta name="theme-color" content="#000000">
+    <meta name="color-scheme" content="light">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black">
+    <link rel="apple-touch-icon" href="icon-192.png">
+    
+    <script>
+      // Service Worker Registrierung
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('sw.js')
+            .catch(err => console.log('SW Fehler:', err));
+        });
+      }
+    </script>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        :root {
-            --primary-color: #0f172a;
-            --secondary-color: #f1f5f9;
-            --accent-color: #dc2626;
-            --text-color: #1e293b;
-            --success-color: #16a34a;
-            --bg-color: #e2e8f0;
-        }
 
-        * { box-sizing: border-box; margin: 0; padding: 0; }
-
+/* Fix für PWA-Ränder */
+    html {background-color: #000000 !important;overscroll-behavior-y: none;}
+        
+        /* Setze die Standard-Schriftart */
         body {
-            font-family: 'Segoe UI', system-ui, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
-            display: flex;
-            justify-content: center;
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f7f7;
+        }
+        .container {
             min-height: 100vh;
-            padding: 10px;
         }
-
-        .app-container {
-            width: 100%;
-            max-width: 700px;
-            background: #ffffff;
-            padding: 1.5rem;
-            border-radius: 12px;
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
+        /* Definiere einen Lade-Spin-Effekt */
+        @keyframes spin {
+            from { transform: rotate(0deg);
+            }
+            to { transform: rotate(360deg);
+            }
         }
-
-        header {
-            margin-bottom: 1.5rem;
-            border-bottom: 2px solid var(--secondary-color);
-            padding-bottom: 1rem;
-            text-align: center;
-        }
-
-        h1 { font-size: 1.4rem; color: var(--primary-color); margin-bottom: 5px; }
-        
-        .date-display {
-            font-size: 0.9rem;
-            color: #64748b;
-            margin-bottom: 15px;
-        }
-
-        .toolbar {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            margin-bottom: 1.5rem;
-        }
-
-        .btn {
-            border: none;
-            padding: 10px 15px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            font-size: 0.85rem;
-            display: flex;
-            align-items: center;
-            gap: 5px;
-            transition: opacity 0.2s;
-        }
-
-        .btn-primary { background: var(--primary-color); color: white; }
-        .btn-excel { background: #16a34a; color: white; }
-        .btn-setup { background: #64748b; color: white; }
-        .btn:hover { opacity: 0.9; }
-
-        /* Task Card */
-        .task-card {
-            background: white;
-            border: 1px solid #e2e8f0;
-            border-radius: 10px;
-            margin-bottom: 12px;
-            padding: 12px;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.02);
-        }
-
-        .task-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 8px;
-        }
-
-        .task-title { font-weight: 700; font-size: 1rem; color: var(--primary-color); }
-
-        .status-badge {
-            font-size: 0.7rem;
-            padding: 4px 10px;
-            border-radius: 20px;
-            font-weight: 800;
-        }
-
-        .status-open { background: #f1f5f9; color: #64748b; border: 1px solid #cbd5e1; }
-        .status-ok { background: #dcfce7; color: #166534; border: 1px solid #86efac; }
-        .status-fail { background: #fee2e2; color: #991b1b; border: 1px solid #fca5a5; }
-
-        textarea {
-            width: 100%;
-            padding: 10px;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            font-family: inherit;
-            font-size: 0.9rem;
-            resize: vertical;
-            min-height: 50px;
-            margin-bottom: 10px;
-        }
-
-        .action-bar { display: flex; gap: 8px; align-items: center; }
-
-        .btn-choice {
-            flex: 1;
-            padding: 10px;
-            border-radius: 6px;
-            border: 1px solid #e2e8f0;
-            background: white;
-            font-weight: 600;
-            cursor: pointer;
-            font-size: 0.85rem;
-        }
-
-        .btn-choice.ok:hover { background: #dcfce7; border-color: #22c55e; color: #166534; }
-        .btn-choice.fail:hover { background: #fee2e2; border-color: #ef4444; color: #991b1b; }
-        
-        .btn-del { 
-            padding: 8px 12px;
-            color: #94a3b8; 
-            border: 1px solid transparent; 
-            background: #f8fafc; 
-            font-size: 0.75rem; 
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: 600;
-            transition: all 0.2s;
-        }
-
-        .btn-del:hover { 
-            background: #fee2e2; 
-            color: #ef4444; 
-            border-color: #fca5a5;
-        }
-
-        .add-section {
-            margin-top: 20px;
-            display: flex;
-            gap: 10px;
-        }
-
-        .add-section input { flex: 1; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; }
-
-        footer {
-            margin-top: 2rem;
-            text-align: center;
-            font-size: 0.75rem;
-            color: #94a3b8;
+        .animate-spin-custom {
+            animation: spin 1s linear infinite;
         }
     </style>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        'primary-blue': '#4c78a8', 
+     
+                        'secondary-gray': '#e5e7eb',
+                        'in-air': '#10b981', /* Emerald Green */
+                        'on-ground': '#6b7280', /* Gray */
+                    }
+   
+                }
+            }
+        }
+    </script>
 </head>
-<body>
+<body class="bg-gray-50">
 
-    <div class="app-container">
-        <header>
-            <h1>🚗 PKW-Abfahrtskontrolle</h1>
-            <div class="date-display">Prüfdatum: <span id="currentDate"></span></div>
-
-            <div class="toolbar">
-                <button class="btn btn-setup" onclick="loadDefaultList()">📋 Standard-Liste laden</button>
-                <button class="btn btn-excel" onclick="exportToExcel()">📥 Excel Export</button>
-            </div>
+    <div class="container mx-auto p-4 sm:p-6 max-w-4xl">
+        <header class="text-center py-6 bg-primary-blue text-white rounded-xl shadow-lg mb-6">
+            <h1 class="text-3xl font-extrabold tracking-tight">Flugzeuge im Großraum Augsburg</h1>
+            <p class="text-sm mt-1 opacity-90">Sortiert nach Entfernung vom Zentrum</p>
+ 
         </header>
 
-        <div id="taskList">
-            <!-- Karten werden hier generiert -->
+        <div id="status-message" class="text-center p-3 mb-4 rounded-lg text-sm font-medium transition duration-300">
+            </div>
+        
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-semibold text-gray-700">Gefundene Flugobjekte (<span id="count">0</span>)</h2>
+            <button id="refresh-button" onclick="fetchAircraftData()" class="bg-primary-blue hover:bg-blue-600 text-white font-bold py-2 px-4 rounded-lg shadow-md transition duration-200 flex items-center">
+                <svg id="refresh-icon" class="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m15.356-2H15V4m-7 8a4 4 0 11-8 0 4 4 0 018 0z"></path></svg>
+                <span id="refresh-text">Daten aktualisieren</span>
+            </button>
         </div>
 
-        <div class="add-section">
-            <input type="text" id="taskInput" placeholder="Weiterer Prüfpunkt...">
-            <button class="btn btn-primary" onclick="addTask()">+</button>
-        </div>
+  
+       <ul id="aircraft-list" class="space-y-3">
+            </ul>
 
-        <footer>
-            PKW Prüf-App v2.1 | Daten lokal gespeichert
+        <footer class="text-center text-gray-500 text-xs mt-8 p-4">
+            <p>Die Daten werden direkt von OpenSky Network abgerufen.
+            Sortierung: Entfernung (Nah zuerst).</p>
         </footer>
     </div>
 
     <script>
-        const taskInput = document.getElementById('taskInput');
-        const taskList = document.getElementById('taskList');
-        const dateSpan = document.getElementById('currentDate');
+        // --- Konfiguration ---
+        // Zentrum für den Großraum Augsburg (Postleitzahl 86391 = Neusäß/Augsburg)
+        const CENTER_LAT = 48.3800;
+        const CENTER_LON = 10.8700; 
+        
+        // Suchbereich (ca. 150 km Radius)
+        const RANGE_DEG = 1.5;
+        // Bounding Box Parameter (lamin, lomin, lamax, lomax)
+        const LAT_MIN = (CENTER_LAT - RANGE_DEG).toFixed(3);
+        const LON_MIN = (CENTER_LON - RANGE_DEG).toFixed(3);
+        const LAT_MAX = (CENTER_LAT + RANGE_DEG).toFixed(3);
+        const LON_MAX = (CENTER_LON + RANGE_DEG).toFixed(3);
+        // Direkter OpenSky URL
+        const OPENSKY_URL = `https://opensky-network.org/api/states/all?lamin=${LAT_MIN}&lomin=${LON_MIN}&lamax=${LAT_MAX}&lomax=${LON_MAX}`;
+        // Indexpositionen der relevanten Felder in den OpenSky-Arrays
+        const INDEX = {
+            ICAO24: 0,
+            CALLSIGN: 1,
+            COUNTRY: 2,
+            LAST_CONTACT: 4, // Letzter Kontakt (Unix Time in Sekunden)
+            LONGITUDE: 5,
+          
+            LATITUDE: 6,
+            ALTITUDE: 7, // Barometrische Höhe (Meter)
+            ON_GROUND: 8, // Am Boden (true/false)
+            VELOCITY: 9, // Geschwindigkeit (m/s)
+            TRACK: 10, // Flugrichtung (Grad)
+        };
+        // --- DOM-Elemente und Timer-Management ---
+        const listContainer = document.getElementById('aircraft-list');
+        const statusMessage = document.getElementById('status-message');
+        const refreshButton = document.getElementById('refresh-button');
+        const aircraftCount = document.getElementById('count');
+        const refreshIcon = document.getElementById('refresh-icon');
+        
+        let ageUpdateIntervalId = null;
+        // --- Geometrie Hilfsfunktionen ---
 
-        const today = new Date().toLocaleDateString('de-DE');
-        dateSpan.textContent = today;
+        /**
+         * Konvertiert Grad in Radian.
+         */
+        function toRad(degrees) {
+            return degrees * (Math.PI / 180);
+        }
 
-        let tasks = JSON.parse(localStorage.getItem('pkwChecklistTasks')) || [];
+        /**
+         * Berechnet die Entfernung zwischen zwei Koordinaten in Kilometern (Haversine-Formel).
+         */
+        function calculateDistanceKm(lat1, lon1, lat2, lon2) {
+            const R = 6371;
+            // Radius der Erde in Kilometern
+            
+            const dLat = toRad(lat2 - lat1);
+            const dLon = toRad(lon2 - lon1);
+            
+            lat1 = toRad(lat1);
+            lat2 = toRad(lat2);
+            const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                      Math.sin(dLon / 2) * Math.sin(dLon / 2) * Math.cos(lat1) * Math.cos(lat2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)); 
+            
+            return R * c;
+            // Entfernung in Kilometern
+        }
 
-        function render() {
-            taskList.innerHTML = '';
-            tasks.forEach(task => {
-                const card = document.createElement('div');
-                card.className = 'task-card';
+        // --- UI Hilfsfunktionen ---
+
+        /**
+         * Setzt die Statusmeldung (Lädt, Erfolg, Fehler).
+         */
+        function setStatus(message, type) {
+            statusMessage.textContent = message;
+            statusMessage.className = 'text-center p-3 mb-4 rounded-lg text-sm font-medium transition duration-300';
+            switch (type) {
+                case 'loading':
+                    statusMessage.classList.add('bg-blue-100', 'text-blue-700');
+                    break;
+                case 'success':
+                    statusMessage.classList.add('bg-green-100', 'text-green-700');
+                    break;
+                case 'error':
+                    statusMessage.classList.add('bg-red-100', 'text-red-700');
+                    break;
+                case 'info':
+                default:
+                    statusMessage.classList.add('bg-yellow-100', 'text-yellow-700');
+                    break;
+            }
+        }
+
+        /**
+         * Schaltet den Ladezustand des Buttons um.
+         */
+        function toggleLoading(isLoading) {
+            refreshButton.disabled = isLoading;
+            if (isLoading) {
+                refreshButton.classList.add('opacity-70', 'cursor-not-allowed');
+                refreshIcon.classList.add('animate-spin-custom');
+                document.getElementById('refresh-text').textContent = 'Lade Daten...';
+            } else {
+                refreshButton.classList.remove('opacity-70', 'cursor-not-allowed');
+                refreshIcon.classList.remove('animate-spin-custom');
+                document.getElementById('refresh-text').textContent = 'Daten aktualisieren';
+            }
+        }
+        
+        /**
+         * Konvertiert die Differenz in Sekunden in eine lesbare Zeitangabe.
+         */
+        function formatAge(diffSeconds) {
+            const isStale = diffSeconds > 60;
+            let text;
+
+            if (diffSeconds < 1) { text = 'Jetzt';
+            } 
+            else if (diffSeconds < 60) { text = `vor ${diffSeconds} Sek.`;
+            } 
+            else {
+                const minutes = Math.floor(diffSeconds / 60);
+                if (minutes < 60) { text = `vor ${minutes} Min.`;
+                } 
+                else {
+                    const hours = Math.floor(minutes / 60);
+                    text = `vor ${hours} Std.`;
+                }
+            }
+            return { text, isStale };
+        }
+        
+        /**
+         * Startet den 1-Sekunden-Timer zur Aktualisierung der Positionsalter.
+         */
+        function startRealTimeAgeUpdate() {
+            if (ageUpdateIntervalId) {
+                clearInterval(ageUpdateIntervalId);
+            }
+
+            ageUpdateIntervalId = setInterval(() => {
+                const nowUnix = Math.floor(Date.now() / 1000);
                 
-                let statusClass = 'status-open';
-                let statusText = 'Nicht geprüft';
-                if(task.status === 'ok') { statusClass = 'status-ok'; statusText = 'Mängelfrei'; }
-                if(task.status === 'fail') { statusClass = 'status-fail'; statusText = 'Mangel'; }
+                document.querySelectorAll('.aircraft-card').forEach(card => {
+                    const lastContactTimestamp = parseInt(card.getAttribute('data-timestamp'));
+      
+                    const ageElement = card.querySelector('.time-display');
+                    
+                    if (ageElement && !isNaN(lastContactTimestamp) && lastContactTimestamp > 0) {
+                        const diffSeconds = nowUnix - lastContactTimestamp;
+      
+                        const { text, isStale } = formatAge(diffSeconds);
 
-                card.innerHTML = `
-                    <div class="task-header">
-                        <span class="task-title">${task.title}</span>
-                        <span class="status-badge ${statusClass}">${statusText}</span>
+                        ageElement.textContent = text;
+                        
+                        const timeBox = ageElement.closest('.time-box');
+                        if (timeBox) {
+                            timeBox.classList.remove('bg-blue-100', 'text-blue-700', 'bg-red-100', 'text-red-700');
+                            
+              
+                            if (isStale) {
+                                // Daten sind älter als 60 Sekunden -> Warnung
+                                timeBox.classList.add('bg-red-100', 'text-red-700');
+                                card.classList.add('opacity-50'); 
+                            } else {
+                                // Daten sind aktuell
+                                timeBox.classList.add('bg-blue-100', 'text-blue-700');
+                                card.classList.remove('opacity-50');
+                            }
+                        }
+                    } else if (ageElement) {
+                         ageElement.textContent = 'N/A';
+                    }
+                });
+            }, 1000);
+        }
+
+        /**
+         * Ruft Flugzeugdaten direkt vom OpenSky-Endpunkt ab.
+         */
+        async function fetchAircraftData() {
+            toggleLoading(true);
+            listContainer.innerHTML = '';
+            aircraftCount.textContent = '...';
+            setStatus('Flugdaten für Augsburg werden abgerufen...', 'loading');
+            try {
+                // Konfiguration der HTTP-Basic-Auth Header für die Client-ID
+                const clientId = "roko2703 -api-client";
+                const headers = new Headers();
+                // Basic Auth verlangt 'username:password'. Da kein Passwort vorliegt, bleibt es leer.
+                headers.set('Authorization', 'Basic ' + btoa(clientId + ':'));
+
+                const response = await fetch(OPENSKY_URL, {
+                    method: 'GET',
+                    headers: headers
+                });
+
+                if (!response.ok) {
+                    throw new Error(`API Fehler: HTTP Status ${response.status}.`);
+                }
+
+                const data = await response.json();
+                let allStates = data.states || [];
+
+                if (allStates.length === 0) {
+                    setStatus(`Keine Flugobjekte in der Suchzone gefunden.`, 'info');
+                    aircraftCount.textContent = '0';
+                    return;
+                }
+                
+                processAndRenderData(allStates, 'OpenSky Network');
+            } catch (error) {
+                console.error("Kritischer Netzwerkfehler:", error);
+                setStatus(`Kritischer Fehler: Abruf der OpenSky-Daten fehlgeschlagen. (${error.message}).`, 'error');
+                aircraftCount.textContent = 'Fehler';
+            } finally {
+                toggleLoading(false);
+            }
+        }
+        
+        /**
+         * Verarbeitet, berechnet die Antwort-Entfernung, sortiert und rendert die Daten.
+         */
+        function processAndRenderData(allStates, sourceName) {
+            
+            // 1. Daten filtern, nur mit gültigen Koordinaten und Entfernung berechnen
+            const processedStates = allStates
+                .filter(state => state[INDEX.LATITUDE] && state[INDEX.LONGITUDE])
+                .map(state => {
+  
+                    const lat = state[INDEX.LATITUDE];
+                    const lon = state[INDEX.LONGITUDE];
+                    const distanceKm = calculateDistanceKm(CENTER_LAT, CENTER_LON, lat, lon);
+                    
+          
+                    return {
+                        data: state,
+                        distanceKm: distanceKm
+                    };
+                });
+            // 2. Sortieren nach Entfernung (Nah zuerst)
+            processedStates.sort((a, b) => a.distanceKm - b.distanceKm);
+            renderAircraftList(processedStates);
+            
+            startRealTimeAgeUpdate();
+            
+            setStatus(`Erfolgreich ${processedStates.length} Flugobjekte geladen. Quelle: ${sourceName}. Sortierung: Entfernung.`, 'success');
+            aircraftCount.textContent = processedStates.length;
+        }
+
+        /**
+         * Rendert die Liste der Flugzeuge im DOM.
+         */
+        function renderAircraftList(states) {
+            listContainer.innerHTML = '';
+            states.forEach(processedState => {
+                const state = processedState.data;
+                const distance = processedState.distanceKm;
+
+                const callsign = state[INDEX.CALLSIGN] ? state[INDEX.CALLSIGN].trim() : 'N/A (Registrierung)';
+                const icao24 = state[INDEX.ICAO24];
+                const country = state[INDEX.COUNTRY] || 'Unbekannt';
+                // Velocity: m/s zu km/h
+                const velocity = state[INDEX.VELOCITY] ? (state[INDEX.VELOCITY] * 3.6).toFixed(0) : 'N/A'; 
+                // Altitude: Meter zu Fuß
+                const altitude = state[INDEX.ALTITUDE] ? (state[INDEX.ALTITUDE] * 3.28084).toFixed(0) : 'N/A'; 
+    
+                // Track (Flugrichtung)
+                const track = state[INDEX.TRACK] ? state[INDEX.TRACK].toFixed(0) + '°' : 'N/A';
+                
+                const lastContactTime = state[INDEX.LAST_CONTACT];
+                
+          
+                const onGround = state[INDEX.ON_GROUND] || false;
+                
+                // Status Label und Farbe definieren
+                const statusLabel = onGround ? 'Am Boden' : 'In der Luft';
+                const statusColor = onGround ? 'text-on-ground bg-gray-100' : 'text-in-air bg-green-100';
+                const initialAge = lastContactTime ? formatAge(Math.floor(Date.now() / 1000) - lastContactTime).text : 'N/A';
+
+                const listItem = document.createElement('li');
+                listItem.className = 'bg-white p-4 rounded-xl shadow-md border border-gray-200 transition duration-150 hover:shadow-lg aircraft-card';
+                // Speichere den Unix-Timestamp im data-Attribut
+                listItem.setAttribute('data-timestamp', lastContactTime || '0');
+                listItem.innerHTML = `
+                    <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center">
+                        <div class="mb-2 sm:mb-0">
+                            <p class="text-lg font-bold text-primary-blue">${callsign}</p>
+               
+                            <p class="text-xs text-gray-500">ICAO24: ${icao24} | Herkunft: ${country}</p>
+                        </div>
+                        
+                        <div class="text-right grid grid-cols-2 gap-4 text-sm sm:flex sm:space-x-4">
+                    
+         
+                            <div class="flex flex-col text-center bg-yellow-100 px-2 py-1 rounded-md order-first sm:order-none">
+                    
+                                <span class="font-bold text-yellow-700">${distance.toFixed(1)} km</span>
+                                <span class="text-xs text-yellow-500">Entfernung</span>
+                            </div>
+
+                       
+                            <div class="flex flex-col text-center ${statusColor} px-2 py-1 rounded-md">
+                                <span class="font-semibold">${statusLabel}</span>
+                        
+                                <span class="text-xs opacity-75">Status</span>
+                            </div>
+                            
+                            <div class="flex flex-col text-center bg-blue-100 px-2 py-1 rounded-md time-box">
+                                <span class="font-semibold text-blue-700 time-display">${initialAge}</span>
+                                
+                                <span class="text-xs text-blue-500">Position vor</span>
+                            </div>
+
+                            <div class="flex flex-col text-center bg-secondary-gray px-2 py-1 rounded-md">
+                                <span class="font-semibold text-gray-800">${track}</span>
+                                <span class="text-xs text-gray-500">Richtung</span>
+                            </div>
+                            
+          
+                            <div class="flex flex-col text-center bg-secondary-gray px-2 py-1 rounded-md">
+                                <span class="font-semibold text-gray-800">${velocity} km/h</span>
+                                <span class="text-xs text-gray-500">Geschw.</span>
+      
+                            </div>
+                            <div class="flex flex-col text-center bg-secondary-gray px-2 py-1 rounded-md">
+                                <span class="font-semibold text-gray-800">${altitude} ft</span>
+        
+                                <span class="text-xs text-gray-500">Höhe</span>
+                            </div>
+                        </div>
                     </div>
-                    <textarea placeholder="Hinweise, Mängel oder Messwerte..." 
-                              onchange="updateResult(${task.id}, this.value)">${task.result || ''}</textarea>
-                    <div class="action-bar">
-                        <button class="btn-choice ok" onclick="setStatus(${task.id}, 'ok')">✓ OK</button>
-                        <button class="btn-choice fail" onclick="setStatus(${task.id}, 'fail')">✗ Mangel</button>
-                        <button class="btn-del" onclick="deleteTask(${task.id})" title="Punkt entfernen">Entfernen</button>
-                    </div>
+  
                 `;
-                taskList.appendChild(card);
+                listContainer.appendChild(listItem);
             });
-            localStorage.setItem('pkwChecklistTasks', JSON.stringify(tasks));
         }
 
-        function loadDefaultList() {
-            if(tasks.length > 0 && !confirm("Aktuelle Liste durch Standard-Liste ersetzen? Alle bisherigen Eingaben gehen verloren.")) return;
-            
-            const defaults = [
-                "Reifen: Profiltiefe kontrolliert",
-                "Reifen: Reifendruck (Sichtprüfung/Messung)",
-                "Beleuchtung: Scheinwerfer & Fernlicht",
-                "Beleuchtung: Blinker & Warnblinker",
-                "Beleuchtung: Bremslicht & Rückleuchten",
-                "Motoröl: Füllstand kontrolliert",
-                "Kühlwasser: Füllstand kontrolliert",
-                "Scheibenwaschwasser: Füllstand",
-                "Bremsflüssigkeit: Stand kontrolliert",
-                "Bremsanlage: Funktionsprüfung",
-                "Kraftstoffvorrat: Ausreichend für Fahrt",
-                "Ladungssicherung & Gurte",
-                "Innenraum & Scheiben sauber",
-                "Zulassungsbescheinigung Teil I vorhanden",
-                "Tankkarte vorhanden",
-                "Zubehör: Verbandskasten (Ablaufdatum prüfen)",
-                "Zubehör: Warnweste(n) vorhanden",
-                "Zubehör: Warndreieck vorhanden"
-            ];
-            
-            tasks = defaults.map((item, index) => ({
-                id: Date.now() + index,
-                title: item,
-                status: 'open',
-                result: ''
-            }));
-            render();
-        }
+        // --- Initialisierung ---
+        window.onload = function() {
+            setStatus(`Initialisiere OpenSky Tracker für den Großraum Augsburg. Sortiert nach Entfernung.`, 'info');
+            fetchAircraftData();
 
-        function addTask() {
-            if(!taskInput.value.trim()) return;
-            tasks.push({
-                id: Date.now(),
-                title: taskInput.value,
-                status: 'open',
-                result: ''
-            });
-            taskInput.value = '';
-            render();
-        }
-
-        function exportToExcel() {
-            if (tasks.length === 0) { alert("Keine Daten vorhanden."); return; }
-
-            const excelData = tasks.map(t => ({
-                "Datum": today,
-                "Prüfpunkt": t.title,
-                "Status": t.status === 'ok' ? 'Mängelfrei' : (t.status === 'fail' ? 'Mangel' : 'Offen'),
-                "Bemerkung": t.result
-            }));
-
-            const ws = XLSX.utils.json_to_sheet(excelData);
-            const wb = XLSX.utils.book_new();
-            XLSX.utils.book_append_sheet(wb, ws, "PKW-Check");
-            const fileName = `PKW_Check_${new Date().toISOString().split('T')[0]}.xlsx`;
-            XLSX.writeFile(wb, fileName);
-        }
-
-        window.updateResult = (id, text) => {
-            const task = tasks.find(t => t.id === id);
-            if(task) task.result = text;
-            localStorage.setItem('pkwChecklistTasks', JSON.stringify(tasks));
+            // Setze einen Intervall für die automatische Aktualisierung der Daten (alle 30 Sekunden)
+            setInterval(fetchAircraftData, 30000);
+            // Starte den 1-Sekunden-Timer für die Zeitanzeige
+            startRealTimeAgeUpdate();
         };
-
-        window.setStatus = (id, status) => {
-            const task = tasks.find(t => t.id === id);
-            if(task) task.status = status;
-            render();
-        };
-
-        window.deleteTask = (id) => {
-            tasks = tasks.filter(t => t.id !== id);
-            render();
-        };
-
-        render();
-    </script>
+</script>
 </body>
 </html>
