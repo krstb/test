@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Flugverkehr Test</title>
     
-    <link rel="manifest" href="manifest.json">
+    <link class="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192.png"> 
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <meta name="theme-color" content="#000000">
@@ -110,8 +110,8 @@
         const LAT_MAX = (CENTER_LAT + RANGE_DEG).toFixed(3);
         const LON_MAX = (CENTER_LON + RANGE_DEG).toFixed(3);
         
-        // KORREKTUR: Explizites HTTPS-Protokoll zur Vermeidung von Mixed-Content-Blockaden auf GitHub Pages
-        const OPENSKY_URL = `https://opensky-network.org/api/states/all?lamin=${LAT_MIN}&lomin=${LON_MIN}&lamax=${LAT_MAX}&lomax=${LON_MAX}`;
+        // KORREKTUR: Nutzung eines CORS-Proxys, um das Blockieren der API-Anfrage im Browser zu verhindern
+        const OPENSKY_URL = `https://api.allorigins.win/raw?url=${encodeURIComponent(`https://opensky-network.org/api/states/all?lamin=${LAT_MIN}&lomin=${LON_MIN}&lamax=${LAT_MAX}&lomax=${LON_MAX}`)}`;
         
         // Indexpositionen der relevanten Felder in den OpenSky-Arrays
         const INDEX = {
