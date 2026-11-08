@@ -1,6 +1,6 @@
 {
-  "short_name": "Sonne Mond",
-  "name": "Sonne und Mond",
+  "short_name": "Sonne Mond test",
+  "name": "Sonne und Mond test",
   "description": "Sonnenaufgang Mond und Planeten",
   "start_url": "index.html",
   "display": "standalone",
