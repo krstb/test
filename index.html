@@ -24,56 +24,65 @@
             color: #0f172a;
         }
 
-        /* 1. Auf Mobilgeräten deaktiviert (Android nutzt den nativen Splash Screen) */
+        /* 
+         * Start-Overlay für Desktop und Mobile:
+         * Weißer Hintergrund, perfekt zentriert, kein Versatz.
+         */
         #app-splash {
-            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background-color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999999;
+            opacity: 1;
+            /* Sanftes, langes Ausblenden */
+            transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: all;
         }
 
-        /* 2. Nur auf dem Desktop aktiv: weißer Hintergrund */
-        @media (hover: hover) and (pointer: fine) {
-            #app-splash {
-                position: fixed;
-                inset: 0;
-                background-color: #ffffff; /* Weißer Hintergrund */
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 99999;
-                opacity: 1;
-                transition: opacity 0.3s ease-out;
-            }
-
-            #app-splash img {
-                width: 140px;
-                height: 140px;
-                object-fit: contain;
-                border-radius: 28px;
-                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08); /* Sehr feiner, dezenter Schatten auf Weiß */
-            }
+        #app-splash img {
+            /* 96px entspricht dem Standard-Splash-Maß von Android PWAs */
+            width: 96px;
+            height: 96px;
+            object-fit: contain;
+            border-radius: 20px;
+            /* Kein Sprung durch CSS-Animationen */
+            transform: translateZ(0);
         }
     </style>
 </head>
 <body>
 
-    <!-- Start-Overlay (am Desktop mit weißem Hintergrund) -->
+    <!-- Start-Overlay -->
     <div id="app-splash" aria-hidden="true">
         <img src="icon-192.png" alt="App Logo">
     </div>
 
+    <!-- Hauptinhalt deiner App -->
     <main style="padding: 2rem; text-align: center;">
         <h1>test App</h1>
         <p>Die Anwendung ist geladen.</p>
     </main>
 
     <script>
-        // Blendet das Desktop-Overlay nach dem Laden weich aus
+        // Dauer der Anzeige in Millisekunden (1500 ms = 1,5 Sekunden)
+        const SPLASH_DURATION = 1500; 
+
         window.addEventListener('load', () => {
             const splash = document.getElementById('app-splash');
-            if (splash && window.getComputedStyle(splash).display !== 'none') {
+            if (splash) {
                 setTimeout(() => {
                     splash.style.opacity = '0';
-                    setTimeout(() => splash.remove(), 300);
-                }, 200);
+                    // Nach Ende der CSS-Transition komplett aus dem DOM entfernen
+                    setTimeout(() => {
+                        splash.remove();
+                    }, 600);
+                }, SPLASH_DURATION);
             }
         });
     </script>
