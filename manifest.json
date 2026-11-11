@@ -1,7 +1,7 @@
 {
-  "short_name": "Schwimmbad",
-  "name": "Schwimmbad Eintrittspreise",
-  "description": "zur Berechnung des günstigsten Tarifs anhand der Nutzungszeit",
+  "short_name": "test",
+  "name": "test",
+  "description": "Icon-Test",
   "start_url": "index.html",
   "display": "standalone",
   "orientation": "portrait",
