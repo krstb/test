@@ -5,20 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>test</title>
 
-    <!-- PWA & Icon-Verknüpfungen -->
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon-192.png">
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="apple-touch-icon" href="icon-192.png">
 
-    <!-- Theme & Anzeigeeinstellungen -->
     <meta name="theme-color" content="#0f172a">
     <meta name="color-scheme" content="light">
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 
     <style>
-        /* Grundlegende Seitenformatierung */
         body {
             margin: 0;
             padding: 0;
@@ -44,6 +41,8 @@
             width: 140px;
             height: 140px;
             object-fit: contain;
+            border-radius: 28px; /* Rundung für das Icon */
+            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35); /* Dezenter Tiefeneffekt */
             animation: splash-pulse 1.2s ease-in-out infinite alternate;
         }
 
@@ -59,28 +58,24 @@
 </head>
 <body>
 
-    <!-- 1. Start-Overlay (Splash Screen) -->
     <div id="app-splash" aria-hidden="true">
         <img src="icon-192.png" alt="App Logo">
     </div>
 
-    <!-- 2. Inhalt der App -->
     <main style="padding: 2rem; text-align: center;">
         <h1>test App</h1>
         <p>Die Anwendung ist geladen.</p>
     </main>
 
-    <!-- 3. Skript zum weichen Ausblenden und Entfernen -->
     <script>
         window.addEventListener('load', () => {
             const splash = document.getElementById('app-splash');
             if (splash) {
-                // Kurze Mindestanzeigezeit (250 ms), damit das Logo kurz sichtbar ist
                 setTimeout(() => {
                     splash.style.opacity = '0';
                     setTimeout(() => {
                         splash.remove();
-                    }, 400); // Entspricht der Transition-Dauer im CSS
+                    }, 400);
                 }, 250);
             }
         });
