@@ -16,22 +16,96 @@
     <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
     <style>
-        body {
+        /* Grundlegendes Layout */
+        html, body {
             margin: 0;
             padding: 0;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
             background-color: #ffffff;
             color: #0f172a;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        }
+
+        /* 1. App-Inhalt startet unsichtbar für nahtlosen Übergang */
+        #app-content {
+            opacity: 0;
+            transition: opacity 0.5s ease-in;
+        }
+
+        #app-content.visible {
+            opacity: 1;
+        }
+
+        /* 2. Start-Overlay (Splash) */
+        #app-splash {
+            position: fixed;
+            inset: 0;
+            background-color: #ffffff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 999999;
+            opacity: 1;
+            /* Weicher Übergang mit 'ease-in-out' */
+            transition: opacity 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            pointer-events: none; /* Klicks blockieren verhindern */
+        }
+
+        #app-splash img {
+            width: 110px;
+            height: 110px;
+            object-fit: contain;
+            border-radius: 24px;
+            transition: transform 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+            will-change: transform, opacity;
+        }
+
+        /* Effekt beim Wegblenden: Icon zoomt dezent heran */
+        #app-splash.fade-out {
+            opacity: 0;
+        }
+
+        #app-splash.fade-out img {
+            transform: scale(1.08);
         }
     </style>
 </head>
 <body>
 
-    <!-- Die App startet jetzt direkt mit ihrem eigentlichen Inhalt -->
-    <main style="padding: 2rem; text-align: center;">
-        <h1>test App</h1>
-        <p>Die Anwendung ist sofort sichtbar.</p>
-    </main>
+    <!-- Start-Overlay -->
+    <div id="app-splash" aria-hidden="true">
+        <img src="icon-192.png" alt="App Logo">
+    </div>
+
+    <!-- Dein App-Inhalt (in #app-content gewrappt) -->
+    <div id="app-content">
+        <main style="padding: 2rem; text-align: center;">
+            <h1>test App</h1>
+            <p>Die Anwendung ist jetzt geladen.</p>
+        </main>
+    </div>
+
+    <script>
+        // Dauer der Icon-Anzeige (z. B. 1200 ms = 1,2 Sekunden)
+        const SPLASH_TIME = 1200;
+
+        window.addEventListener('load', () => {
+            const splash = document.getElementById('app-splash');
+            const content = document.getElementById('app-content');
+
+            setTimeout(() => {
+                // 1. App-Inhalt sanft einblenden
+                if (content) content.classList.add('visible');
+
+                // 2. Start-Overlay zeitgleich sanft ausblenden
+                if (splash) {
+                    splash.classList.add('fade-out');
+                    setTimeout(() => {
+                        splash.remove(); // Nach Ende der Transition aus dem DOM entfernen
+                    }, 600);
+                }
+            }, SPLASH_TIME);
+        });
+    </script>
 
 </body>
 </html>
