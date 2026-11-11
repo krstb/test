@@ -10,10 +10,10 @@
     <link rel="icon" type="image/svg+xml" href="favicon.svg">
     <link rel="apple-touch-icon" href="icon-192.png">
 
-    <meta name="theme-color" content="#0f172a">
+    <meta name="theme-color" content="#ffffff">
     <meta name="color-scheme" content="light">
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
 
     <style>
         body {
@@ -24,18 +24,17 @@
             color: #0f172a;
         }
 
-        /* 1. Standardmäßig auf Smartphones/Touchgeräten DEAKTIVIERT */
-        /* Dadurch übernimmt Android 100% nativ und es gibt kein Hüpfen mehr */
+        /* 1. Auf Mobilgeräten deaktiviert (Android nutzt den nativen Splash Screen) */
         #app-splash {
             display: none;
         }
 
-        /* 2. Nur auf Windows / Mac Desktop-Geräten mit Maus aktivieren */
+        /* 2. Nur auf dem Desktop aktiv: weißer Hintergrund */
         @media (hover: hover) and (pointer: fine) {
             #app-splash {
                 position: fixed;
                 inset: 0;
-                background-color: #0f172a;
+                background-color: #ffffff; /* Weißer Hintergrund */
                 display: flex;
                 align-items: center;
                 justify-content: center;
@@ -49,14 +48,14 @@
                 height: 140px;
                 object-fit: contain;
                 border-radius: 28px;
-                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+                box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08); /* Sehr feiner, dezenter Schatten auf Weiß */
             }
         }
     </style>
 </head>
 <body>
 
-    <!-- Start-Overlay (nur für Desktop aktiv) -->
+    <!-- Start-Overlay (am Desktop mit weißem Hintergrund) -->
     <div id="app-splash" aria-hidden="true">
         <img src="icon-192.png" alt="App Logo">
     </div>
@@ -67,7 +66,7 @@
     </main>
 
     <script>
-        // Blendet das Desktop-Overlay sauber aus
+        // Blendet das Desktop-Overlay nach dem Laden weich aus
         window.addEventListener('load', () => {
             const splash = document.getElementById('app-splash');
             if (splash && window.getComputedStyle(splash).display !== 'none') {
