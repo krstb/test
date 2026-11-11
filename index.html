@@ -37,23 +37,25 @@
             transition: opacity 0.4s ease-out;
         }
 
-        #app-splash img {
-            width: 140px;
-            height: 140px;
-            object-fit: contain;
-            border-radius: 28px; /* Rundung für das Icon */
-            box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35); /* Dezenter Tiefeneffekt */
-            animation: splash-pulse 1.2s ease-in-out infinite alternate;
-        }
+        /* Standardmäßig auf mobilen Geräten und Touchscreens nicht anzeigen */
+#app-splash {
+    display: none;
+}
 
-        @keyframes splash-pulse {
-            from {
-                transform: scale(0.96);
-            }
-            to {
-                transform: scale(1.04);
-            }
-        }
+/* Nur auf Desktop-Geräten (Windows / macOS) anzeigen */
+@media (hover: hover) and (pointer: fine) {
+    #app-splash {
+        position: fixed;
+        inset: 0;
+        background-color: #0f172a;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 99999;
+        opacity: 1;
+        transition: opacity 0.4s ease-out;
+    }
+}
     </style>
 </head>
 <body>
