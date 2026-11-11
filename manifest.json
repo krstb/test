@@ -1,7 +1,7 @@
 {
-  "short_name": "Sonne Mond test",
-  "name": "Sonne und Mond test",
-  "description": "Sonnenaufgang Mond und Planeten",
+  "short_name": "Schwimmbad",
+  "name": "Schwimmbad Eintrittspreise",
+  "description": "zur Berechnung des günstigsten Tarifs anhand der Nutzungszeit",
   "start_url": "index.html",
   "display": "standalone",
   "orientation": "portrait",
@@ -18,7 +18,7 @@
       "src": "icon-512.png",
       "type": "image/png",
       "sizes": "512x512",
-      "purpose": "any maskable"
+      "purpose": "any"
     }
   ]
 }
